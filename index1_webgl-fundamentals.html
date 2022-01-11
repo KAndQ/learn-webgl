@@ -1,0 +1,123 @@
+<html>
+    <head> </head>
+    <body>
+        <canvas id="c" width="400" height="300"></canvas>
+        <script>
+            var canvas = document.querySelector("#c");
+            var gl = canvas.getContext("webgl2");
+            if (!gl) {
+                console.log("no webgl2 for you!");
+            } else {
+                console.log("webgl2 for you!");
+            }
+
+            var vertexShaderSource = `#version 300 es
+
+// an attribute is an input (in) to a vertex shader.
+// It will receive data from a buffer
+// in vec4 a_position;
+in vec2 a_position;
+uniform vec2 u_resolution;
+
+// all shaders have a main function
+void main() {
+
+  vec2 zeroToOne = a_position / u_resolution;
+  vec2 zeroToTwo = zeroToOne * 2.0;
+  vec2 clipSpace = zeroToTwo - 1.0;
+
+  // gl_Position is a special variable a vertex shader
+  // is responsible for setting
+  gl_Position = vec4(clipSpace, 0, 1);
+}
+`;
+
+            var fragmentShaderSource = `#version 300 es
+
+// fragment shaders don't have a default precision so we need
+// to pick one. highp is a good default. It means "high precision"
+precision highp float;
+
+// we need to declare an output for the fragment shader
+out vec4 outColor;
+uniform vec4 u_color;
+
+void main() {
+  // Just set the output to a constant reddish-purple
+  outColor = u_color;
+}
+`;
+
+            function createShader(gl, type, source) {
+                var shader = gl.createShader(type);
+                gl.shaderSource(shader, source);
+                gl.compileShader(shader);
+                var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+                if (success) {
+                    return shader;
+                }
+
+                console.log(gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+            }
+
+            var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+            var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+
+            function createProgram(gl, vertexShader, fragmentShader) {
+                var program = gl.createProgram();
+                gl.attachShader(program, vertexShader);
+                gl.attachShader(program, fragmentShader);
+                gl.linkProgram(program);
+                var success = gl.getProgramParameter(program, gl.LINK_STATUS);
+                if (success) {
+                    return program;
+                }
+
+                console.log(gl.getProgramInfoLog(program));
+                gl.deleteProgram(program);
+            }
+
+            var program = createProgram(gl, vertexShader, fragmentShader);
+
+            var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+            var resolutionUniformLocation = gl.getUniformLocation(program, "u_resolution");
+            var colorUniformLocation = gl.getUniformLocation(program, "u_color");
+
+            // 将数据放进缓冲区, 注意这里只是放进去
+            var positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            var positions = [10, 20, 80, 20, 10, 30, 10, 30, 80, 20, 80, 30];
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+            // 创建 VAO, 并且设置属性值如何从缓冲区取出数据
+            var vao = gl.createVertexArray();
+            gl.bindVertexArray(vao);
+            gl.enableVertexAttribArray(positionAttributeLocation);
+            var size = 2; // 2 components per iteration
+            var type = gl.FLOAT; // the data is 32bit floats
+            var normalize = false; // don't normalize the data
+            var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
+            var offset = 0; // start at the beginning of the buffer
+            gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            gl.useProgram(program);
+
+            gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
+            gl.uniform4f(colorUniformLocation, 1.0, 0.0, 0.0, 1.0);
+
+            // 这里有点迷, 上面执行了一遍, 这里又执行一遍, 注释掉也能正常运行.
+            gl.bindVertexArray(vao);
+
+            var primitiveType = gl.TRIANGLES;
+            var offset = 0;
+            var count = positions.length / 2; // 执行顶点着色器的次数?
+            gl.drawArrays(primitiveType, offset, count);
+        </script>
+    </body>
+</html>
