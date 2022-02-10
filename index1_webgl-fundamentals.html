@@ -84,40 +84,85 @@ void main() {
             var resolutionUniformLocation = gl.getUniformLocation(program, "u_resolution");
             var colorUniformLocation = gl.getUniformLocation(program, "u_color");
 
-            // 将数据放进缓冲区, 注意这里只是放进去
-            var positionBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-            var positions = [10, 20, 80, 20, 10, 30, 10, 30, 80, 20, 80, 30];
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+            function createVAO(gl, positions, positionAttributeLocation) {
+                // 将数据放进缓冲区, 注意这里只是放进去
+                var positionBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
-            // 创建 VAO, 并且设置属性值如何从缓冲区取出数据
-            var vao = gl.createVertexArray();
-            gl.bindVertexArray(vao);
-            gl.enableVertexAttribArray(positionAttributeLocation);
-            var size = 2; // 2 components per iteration
-            var type = gl.FLOAT; // the data is 32bit floats
-            var normalize = false; // don't normalize the data
-            var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
-            var offset = 0; // start at the beginning of the buffer
-            gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+                // 创建 VAO, 并且设置属性值如何从缓冲区取出数据
+                // 我理解为 VAO 是一个将 缓冲区 和 属性 关联起来的工具
+                var vao = gl.createVertexArray();
+                gl.bindVertexArray(vao);
+                gl.enableVertexAttribArray(positionAttributeLocation);
+                var size = 2; // 2 components per iteration
+                var type = gl.FLOAT; // the data is 32bit floats
+                var normalize = false; // don't normalize the data
+                var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
+                var offset = 0; // start at the beginning of the buffer
+                gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+
+                return vao;
+            }
+
+            var vao1 = createVAO(gl, [10, 20, 80, 20, 10, 30, 10, 30, 80, 20, 80, 30], positionAttributeLocation);
 
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
-            gl.clearColor(0, 0, 0, 0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.clearColor(0, 0, 0, 1);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
             gl.useProgram(program);
 
             gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
-            gl.uniform4f(colorUniformLocation, 1.0, 0.0, 0.0, 1.0);
+            gl.uniform4f(colorUniformLocation, 1.0, 0.5, 0.0, 1.0);
 
-            // 这里有点迷, 上面执行了一遍, 这里又执行一遍, 注释掉也能正常运行.
-            gl.bindVertexArray(vao);
+            // 用哪个缓冲区和如何从缓冲区取出数据给到属性
+            // 因为目前只有 1 个缓冲区, 所以即使注释掉这行也是正常展示, 可以如果有多个缓冲区的时候, 就有区别了, 例如下面的 vao2
+            gl.bindVertexArray(vao1);
 
             var primitiveType = gl.TRIANGLES;
             var offset = 0;
-            var count = positions.length / 2; // 执行顶点着色器的次数?
+            var count = 6; // 执行顶点着色器的次数
             gl.drawArrays(primitiveType, offset, count);
+
+            gl.uniform4f(colorUniformLocation, 1.0, 0.0, 0.0, 1.0);
+            var vao2 = createVAO(gl, [10, 120, 80, 120, 10, 130, 10, 130, 80, 120, 80, 130], positionAttributeLocation);
+            gl.bindVertexArray(vao2);
+            var primitiveType = gl.TRIANGLES;
+            var offset = 0;
+            var count = 6; // 执行顶点着色器的次数
+            gl.drawArrays(primitiveType, offset, count);
+
+            // Returns a random integer from 0 to range - 1.
+            function randomInt(range) {
+                return Math.floor(Math.random() * range);
+            }
+
+            // Fill the buffer with the values that define a rectangle.
+            function setRectangle(gl, x, y, width, height) {
+                var x1 = x;
+                var x2 = x + width;
+                var y1 = y;
+                var y2 = y + height;
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([x1, y1, x2, y1, x1, y2, x1, y2, x2, y1, x2, y2]), gl.STATIC_DRAW);
+            }
+
+            // draw 50 random rectangles in random colors
+            for (var ii = 0; ii < 50; ++ii) {
+                // Put a rectangle in the position buffer
+                // 注意, setRectangle 方法里面的 bufferData 使用的是 vao2 对象关联的缓冲区
+                setRectangle(gl, randomInt(300), randomInt(300), randomInt(300), randomInt(300));
+
+                // Set a random color.
+                gl.uniform4f(colorUniformLocation, Math.random(), Math.random(), Math.random(), 1);
+
+                // Draw the rectangle.
+                var primitiveType = gl.TRIANGLES;
+                var offset = 0;
+                var count = 6;
+                gl.drawArrays(primitiveType, offset, count);
+            }
         </script>
     </body>
 </html>
