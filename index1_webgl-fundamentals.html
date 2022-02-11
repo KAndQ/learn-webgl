@@ -85,21 +85,28 @@ void main() {
             var colorUniformLocation = gl.getUniformLocation(program, "u_color");
 
             function createVAO(gl, positions, positionAttributeLocation) {
-                // 将数据放进缓冲区, 注意这里只是放进去
+                // 1. 创建一个缓冲区
                 var positionBuffer = gl.createBuffer();
+                // 2. 将该缓冲区设置为正在处理的缓冲区
                 gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                // 3. 将数据复制到当前缓冲区中
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
                 // 创建 VAO, 并且设置属性值如何从缓冲区取出数据
                 // 我理解为 VAO 是一个将 缓冲区 和 属性 关联起来的工具
                 var vao = gl.createVertexArray();
                 gl.bindVertexArray(vao);
+
+                // 这条命令告诉WebGL我们想要从缓冲区取数据, 给指定的属性
                 gl.enableVertexAttribArray(positionAttributeLocation);
+
                 var size = 2; // 2 components per iteration
                 var type = gl.FLOAT; // the data is 32bit floats
                 var normalize = false; // don't normalize the data
                 var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
                 var offset = 0; // start at the beginning of the buffer
+
+                // 从最后调用 gl.bindBuffer 绑定的缓冲区中获取数据给指定的属性
                 gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
 
                 return vao;
@@ -131,7 +138,7 @@ void main() {
             gl.bindVertexArray(vao2);
             var primitiveType = gl.TRIANGLES;
             var offset = 0;
-            var count = 6; // 执行顶点着色器的次数
+            var count = 6; // 执行顶点着色器的次数, 片段着色器的执行次数由绘制的像素数量决定
             gl.drawArrays(primitiveType, offset, count);
 
             // Returns a random integer from 0 to range - 1.

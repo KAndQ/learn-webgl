@@ -1,0 +1,243 @@
+<html>
+    <head></head>
+    <body>
+        <canvas id="c" width="400" height="300"></canvas>
+        <script src="./webgl-utils.js"></script>
+        <script>
+            function main1() {
+                var canvas = document.querySelector("#c");
+                var gl = canvas.getContext("webgl2");
+                if (!gl) {
+                    console.log("no weblgl2 for you!");
+                    return;
+                }
+
+                var vs = `#version 300 es
+in vec2 a_position;
+
+uniform vec2 u_resolution;
+
+out vec4 v_color;
+
+void main() {
+
+  gl_Position = vec4(a_position / u_resolution, 0, 1);
+
+  // Convert from clipspace to colorspace.
+  // Clipspace goes -1.0 to +1.0
+  // Colorspace goes from 0.0 to 1.0
+  v_color = gl_Position * 0.5 + 0.5;
+}
+`;
+
+                var fs = `#version 300 es
+
+precision highp float;
+
+// 注意: 片段着色器中的 varying 类型变量的值是经过插值计算过的值
+in vec4 v_color;
+
+out vec4 outColor;
+
+void main() {
+  outColor = v_color;
+}
+`;
+
+                var program = webglUtils.createProgramFromSources(gl, [vs, fs]);
+                var positionLocation = gl.getAttribLocation(program, "a_position");
+                var resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+
+                var vao = gl.createVertexArray();
+                gl.bindVertexArray(vao);
+
+                var buffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, -100, 150, 125, -175, 100]), gl.STATIC_DRAW);
+
+                gl.enableVertexAttribArray(positionLocation);
+                var size = 2;
+                var type = gl.FLOAT;
+                var normalize = false;
+                var stride = 0;
+                var offset = 0;
+                gl.vertexAttribPointer(positionLocation, size, type, normalize, stride, offset);
+
+                gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+                // Clear the canvas
+                gl.clearColor(1, 0, 0, 1);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+                gl.useProgram(program);
+                gl.bindVertexArray(vao);
+
+                gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
+
+                var offset = 0;
+                var count = 3;
+                gl.drawArrays(gl.TRIANGLES, offset, count);
+            }
+            // main1();
+
+            function main2() {
+                var vs = `#version 300 es
+
+in vec2 a_position;
+in vec4 a_color;
+
+uniform vec2 u_resolution;
+
+out vec4 v_color;
+
+void main() {
+  // Multiply the position by the matrix.
+  gl_Position = vec4(a_position / u_resolution, 0, 1);
+
+  // Copy the color from the attribute to the varying.
+  v_color = a_color;
+}
+`;
+
+                var fs = `#version 300 es
+
+precision highp float;
+
+in vec4 v_color;
+
+out vec4 outColor;
+
+void main() {
+  outColor = v_color;
+}
+`;
+
+                var canvas = document.querySelector("#c");
+                var gl = canvas.getContext("webgl2");
+                if (!gl) {
+                    return;
+                }
+
+                var program = webglUtils.createProgramFromSources(gl, [vs, fs]);
+
+                var positionLocation = gl.getAttribLocation(program, "a_position");
+                var colorLocation = gl.getAttribLocation(program, "a_color");
+
+                var resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+
+                var vao = gl.createVertexArray();
+                gl.bindVertexArray(vao);
+
+                // 设置位置的缓存区和 position attribute
+                var buffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-150, -100, 150, -100, -150, 100, 150, -100, -150, 100, 150, 100]), gl.STATIC_DRAW);
+                gl.enableVertexAttribArray(positionLocation);
+                var size = 2;
+                var type = gl.FLOAT;
+                var normalize = false;
+                var stride = 0;
+                var offset = 0;
+                gl.vertexAttribPointer(positionLocation, size, type, normalize, stride, offset);
+
+                // 设置颜色的缓冲区与 color attribute
+                var buffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+
+                // var r1 = Math.random();
+                // var b1 = Math.random();
+                // var g1 = Math.random();
+                // var r2 = Math.random();
+                // var b2 = Math.random();
+                // var g2 = Math.random();
+                // gl.bufferData(
+                //     gl.ARRAY_BUFFER,
+                //     new Float32Array([r1, b1, g1, 1, r1, b1, g1, 1, r1, b1, g1, 1, r2, b2, g2, 1, r2, b2, g2, 1, r2, b2, g2, 1]),
+                //     gl.STATIC_DRAW
+                // );
+
+                // gl.bufferData(
+                //     gl.ARRAY_BUFFER,
+                //     new Float32Array([
+                //         Math.random(),
+                //         Math.random(),
+                //         Math.random(),
+                //         1,
+                //         Math.random(),
+                //         Math.random(),
+                //         Math.random(),
+                //         1,
+                //         Math.random(),
+                //         Math.random(),
+                //         Math.random(),
+                //         1,
+                //         Math.random(),
+                //         Math.random(),
+                //         Math.random(),
+                //         1,
+                //         Math.random(),
+                //         Math.random(),
+                //         Math.random(),
+                //         1,
+                //         Math.random(),
+                //         Math.random(),
+                //         Math.random(),
+                //         1,
+                //     ]),
+                //     gl.STATIC_DRAW
+                // );
+
+                gl.enableVertexAttribArray(colorLocation);
+
+                // var size = 4;
+                // var type = gl.FLOAT;
+                // var normalize = false;
+                // var stride = 0;
+                // var offset = 0;
+                // gl.vertexAttribPointer(colorLocation, size, type, normalize, stride, offset);
+
+                // 下面是介绍 normalizeFlag 的作用
+                // normalizeFlag适用于所有非浮点类型。 如果通过如果为false，则值将被解释为它们的类型。 BYTE从-128到127，UNSIGNED_BYTE从0到255，SHORT INTEGER从-32768到32767等...
+                // 如果将normalize标志设置为true，则BYTE的值（-128至127）表示值-1.0至+ 1.0， UNSIGNED_BYTE（0至255）变为0.0至+1.0。标准化的SHORT INTEGER也从-1.0变为+1.0，它的分辨率比BYTE高。
+                // 归一化数据的最常见用途是颜色。 大多数时候颜色仅从0.0到1.0。 如果红色，绿色，蓝色和Alpha分别使用一个完整的浮点数,每个顶点的每种颜色将使用16个字节。 如果您有复杂的几何体，将会可以增加很多字节。
+                // 相反，您可以将颜色转换为UNSIGNED_BYTEs (其中0代表0.0，255代表1.0)。 现在每种颜色只需要4个字节,每个顶点可节省75％的空间。
+                var r1 = Math.random() * 256; // 0 to 255.99999
+                var b1 = Math.random() * 256; // these values
+                var g1 = Math.random() * 256; // will be truncated
+                var r2 = Math.random() * 256; // when stored in the
+                var b2 = Math.random() * 256; // Uint8Array
+                var g2 = Math.random() * 256;
+                gl.bufferData(
+                    gl.ARRAY_BUFFER,
+                    new Uint8Array([r1, b1, g1, 255, r1, b1, g1, 255, r1, b1, g1, 255, r2, b2, g2, 255, r2, b2, g2, 255, r2, b2, g2, 255]),
+                    gl.STATIC_DRAW
+                );
+                var size = 4;
+                var type = gl.UNSIGNED_BYTE;
+                var normalize = true;
+                var stride = 0;
+                var offset = 0;
+                gl.vertexAttribPointer(colorLocation, size, type, normalize, stride, offset);
+
+                gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+                // Clear the canvas
+                gl.clearColor(0, 0, 0, 0);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+                // Tell it to use our program (pair of shaders)
+                gl.useProgram(program);
+
+                // Bind the attribute/buffer set we want.
+                gl.bindVertexArray(vao);
+
+                gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+
+                var offset = 0;
+                var count = 6;
+                gl.drawArrays(gl.TRIANGLES, offset, count);
+            }
+            main2();
+        </script>
+    </body>
+</html>
