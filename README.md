@@ -8,4 +8,6 @@
 - [x] WebGL2有什么新内容
 - [x] 迁移WebGL1到WebGL2
 - [x] WebGLFundamentals.org和WebGL2Fundamentals.org的区别
-- [ ] 图像处理
+- [x] 图像处理
+- [ ] WebGL2 进一步处理图像
+- [ ] [卷积核](https://docs.gimp.org/2.6/en/plug-in-convmatrix.html)

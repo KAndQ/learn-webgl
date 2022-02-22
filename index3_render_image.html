@@ -4,6 +4,38 @@
     <body>
         <canvas id="c" width="640" height="480"></canvas>
         <script>
+            function computeKernelWeight(kernel) {
+                var weight = kernel.reduce(function (prev, curr) {
+                    return prev + curr;
+                });
+                return weight <= 0 ? 1 : weight;
+            }
+
+            var kernels = {
+                normal: [0, 0, 0, 0, 1, 0, 0, 0, 0], // 正常
+                gaussianBlur: [0.045, 0.122, 0.045, 0.122, 0.332, 0.122, 0.045, 0.122, 0.045], // 模糊 1
+                gaussianBlur2: [1, 2, 1, 2, 4, 2, 1, 2, 1], // 模糊 2
+                gaussianBlur3: [0, 1, 0, 1, 1, 1, 0, 1, 0], // 模糊 3
+                gaussianBlur4: [1, 1, 1, 1, 1, 1, 1, 1, 1], // 模糊 4
+                unsharpen: [-1, -1, -1, -1, 9, -1, -1, -1, -1], // 非锐化
+                sharpness: [0, -1, 0, -1, 5, -1, 0, -1, 0], // 锐化
+                sharpen: [-1, -1, -1, -1, 16, -1, -1, -1, -1],
+                edgeDetect: [-0.125, -0.125, -0.125, -0.125, 1, -0.125, -0.125, -0.125, -0.125],
+                edgeDetect2: [-1, -1, -1, -1, 8, -1, -1, -1, -1],
+                edgeDetect3: [-5, 0, 0, 0, 0, 0, 0, 0, 5],
+                edgeDetect4: [-1, -1, -1, 0, 0, 0, 1, 1, 1],
+                edgeDetect5: [-1, -1, -1, 2, 2, 2, -1, -1, -1],
+                edgeDetect6: [-5, -5, -5, -5, 39, -5, -5, -5, -5],
+                sobelHorizontal: [1, 2, 1, 0, 0, 0, -1, -2, -1],
+                sobelVertical: [1, 0, -1, 2, 0, -2, 1, 0, -1],
+                previtHorizontal: [1, 1, 1, 0, 0, 0, -1, -1, -1],
+                previtVertical: [1, 0, -1, 1, 0, -1, 1, 0, -1],
+                boxBlur: [0.111, 0.111, 0.111, 0.111, 0.111, 0.111, 0.111, 0.111, 0.111],
+                triangleBlur: [0.0625, 0.125, 0.0625, 0.125, 0.25, 0.125, 0.0625, 0.125, 0.0625],
+                emboss: [-2, -1, 0, -1, 1, 1, 0, 1, 2],
+            };
+            var names = Object.keys(kernels);
+
             function render(image) {
                 console.log("load image");
 
@@ -35,14 +67,33 @@ void main() {
 precision highp float;
 
 in vec2 v_texCoord;
+
 uniform sampler2D u_image;
+uniform float u_kernel[9];
+uniform float u_kernelWeight;
+
 out vec4 outColor;
 
 void main() {
     vec2 onePixel = vec2(1.0) / vec2(textureSize(u_image, 0));
-    outColor = texture(u_image, v_texCoord);
-//   outColor = texture(u_image, v_texCoord).bgra;
+
+    // outColor = texture(u_image, v_texCoord);
+
+    // outColor = texture(u_image, v_texCoord).bgra;
+
     // outColor = (texture(u_image, v_texCoord) + texture(u_image, v_texCoord + vec2(-onePixel.x, 0)) + texture(u_image, v_texCoord + vec2(onePixel.x, 0))) / 3.0;
+
+    vec4 colorSum =
+      texture(u_image, v_texCoord + onePixel * vec2(-1, -1)) * u_kernel[0] +
+      texture(u_image, v_texCoord + onePixel * vec2( 0, -1)) * u_kernel[1] +
+      texture(u_image, v_texCoord + onePixel * vec2( 1, -1)) * u_kernel[2] +
+      texture(u_image, v_texCoord + onePixel * vec2(-1,  0)) * u_kernel[3] +
+      texture(u_image, v_texCoord + onePixel * vec2( 0,  0)) * u_kernel[4] +
+      texture(u_image, v_texCoord + onePixel * vec2( 1,  0)) * u_kernel[5] +
+      texture(u_image, v_texCoord + onePixel * vec2(-1,  1)) * u_kernel[6] +
+      texture(u_image, v_texCoord + onePixel * vec2( 0,  1)) * u_kernel[7] +
+      texture(u_image, v_texCoord + onePixel * vec2( 1,  1)) * u_kernel[8] ;
+    outColor = vec4((colorSum / u_kernelWeight).rgb, 1);
 }
 `;
                 var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
@@ -53,6 +104,8 @@ void main() {
                 var texCoordAttributeLocation = gl.getAttribLocation(program, "a_texCoord");
                 var resolutionLocation = gl.getUniformLocation(program, "u_resolution");
                 var imageLocation = gl.getUniformLocation(program, "u_image");
+                var kernelLocation = gl.getUniformLocation(program, "u_kernel[0]");
+                var kernelWeightLocation = gl.getUniformLocation(program, "u_kernelWeight");
 
                 var vao = gl.createVertexArray();
 
@@ -72,6 +125,7 @@ void main() {
 
                 // Create a texture.
                 var texture = gl.createTexture();
+                console.log(`[DRAW]: texture = `, texture);
 
                 // make unit 0 the active texture uint
                 // (ie, the unit all other texture commands will affect
@@ -93,6 +147,7 @@ void main() {
                 var srcFormat = gl.RGBA; // format of data we are supplying
                 var srcType = gl.UNSIGNED_BYTE; // type of data we are supplying
                 gl.texImage2D(gl.TEXTURE_2D, mipLevel, internalFormat, srcFormat, srcType, image);
+                gl.bindVertexArray(null);
 
                 gl.bindVertexArray(vao);
                 var positionBuffer = gl.createBuffer();
@@ -124,13 +179,12 @@ void main() {
                 var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
                 var offset = 0; // start at the beginning of the buffer
                 gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+                gl.bindVertexArray(null);
+
+                gl.bindVertexArray(vao);
 
                 // Tell WebGL how to convert from clip space to pixels
                 gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-                // Clear the canvas
-                gl.clearColor(1, 1, 0, 0.5);
-                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
                 // Tell it to use our program (pair of shaders)
                 gl.useProgram(program);
@@ -142,11 +196,31 @@ void main() {
                 // Tell the shader to get the texture from texture unit 0
                 gl.uniform1i(imageLocation, 0);
 
-                // Draw the rectangle.
-                var primitiveType = gl.TRIANGLES;
-                var offset = 0;
-                var count = 6;
-                gl.drawArrays(primitiveType, offset, count);
+                function draw(initialSelection) {
+                    console.log(`[DRAW]: initialSelection = ${initialSelection}`);
+
+                    // Clear the canvas
+                    gl.clearColor(Math.random(), Math.random(), Math.random(), 1.0);
+                    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+                    gl.uniform1fv(kernelLocation, kernels[initialSelection]);
+                    gl.uniform1f(kernelWeightLocation, computeKernelWeight(kernels[initialSelection]));
+
+                    // Draw the rectangle.
+                    var primitiveType = gl.TRIANGLES;
+                    var offset = 0;
+                    var count = 6;
+                    gl.drawArrays(primitiveType, offset, count);
+                }
+
+                var index = 0;
+                draw(names[index]);
+                setInterval(() => {
+                    if (++index >= names.length) {
+                        index = 0;
+                    }
+                    draw(names[index]);
+                }, 1000);
             }
 
             function main() {
