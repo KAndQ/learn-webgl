@@ -1,0 +1,106 @@
+<html>
+    <head></head>
+    <script src="./buildin.js"></script>
+    <body>
+        <canvas id="c" width="640" height="480"></canvas>
+        <script>
+            var vertexShaderSource = `#version 300 es
+precision highp float;
+
+in vec2 a_texCoord;
+in vec2 a_position;
+uniform vec2 u_resolution;
+out vec2 v_texCoord;
+
+void main() {
+  vec2 zeroToOne = a_position / u_resolution;
+  vec2 zeroToTwo = zeroToOne * 2.0;
+  vec2 clipSpace = zeroToTwo - 1.0;
+  gl_Position = vec4(clipSpace, 0, 1);
+  v_texCoord = vec2(a_texCoord.x, 1.0 - a_texCoord.y);
+}
+`;
+
+            var fragmentShaderSource = `#version 300 es
+precision highp float;
+
+in vec2 v_texCoord;
+
+uniform sampler2D u_image;
+uniform float u_kernel[9];
+uniform float u_kernelWeight;
+
+out vec4 outColor;
+
+void main() {
+    vec2 onePixel = vec2(1.0) / vec2(textureSize(u_image, 0));
+
+    // outColor = texture(u_image, v_texCoord);
+
+    // outColor = texture(u_image, v_texCoord).bgra;
+
+    // outColor = (texture(u_image, v_texCoord) + texture(u_image, v_texCoord + vec2(-onePixel.x, 0)) + texture(u_image, v_texCoord + vec2(onePixel.x, 0))) / 3.0;
+
+    vec4 colorSum =
+      texture(u_image, v_texCoord + onePixel * vec2(-1, -1)) * u_kernel[0] +
+      texture(u_image, v_texCoord + onePixel * vec2( 0, -1)) * u_kernel[1] +
+      texture(u_image, v_texCoord + onePixel * vec2( 1, -1)) * u_kernel[2] +
+      texture(u_image, v_texCoord + onePixel * vec2(-1,  0)) * u_kernel[3] +
+      texture(u_image, v_texCoord + onePixel * vec2( 0,  0)) * u_kernel[4] +
+      texture(u_image, v_texCoord + onePixel * vec2( 1,  0)) * u_kernel[5] +
+      texture(u_image, v_texCoord + onePixel * vec2(-1,  1)) * u_kernel[6] +
+      texture(u_image, v_texCoord + onePixel * vec2( 0,  1)) * u_kernel[7] +
+      texture(u_image, v_texCoord + onePixel * vec2( 1,  1)) * u_kernel[8] ;
+    outColor = vec4((colorSum / u_kernelWeight).rgb, 1);
+}
+`;
+
+            function render(image) {
+                var canvas = document.querySelector("#c");
+                var gl = canvas.getContext("webgl2");
+                if (!gl) {
+                    console.log("no webgl");
+                    return;
+                }
+
+                // 创建两个纹理绑定到帧缓冲
+                var textures = [];
+                var framebuffers = [];
+                for (var ii = 0; ii < 2; ++ii) {
+                    var texture = createAndSetupTexture(gl);
+                    textures.push(texture);
+
+                    // 设置纹理大小和图像大小一致
+                    var mipLevel = 0; // 指定详细级别
+                    var internalFormat = gl.RGBA; // 指定纹理中的颜色组件
+                    var border = 0; // 必须为 0
+                    var srcFormat = gl.RGBA; // 指定纹理的数据格式
+                    var srcType = gl.UNSIGNED_BYTE; // 指定纹理的数据类型
+                    var data = null; // data没有值意味着创建一个空白的纹理
+                    gl.texImage2D(gl.TEXTURE_2D, mipLevel, internalFormat, image.width, image.height, border, srcFormat, srcType, data);
+
+                    // 创建一个帧缓冲
+                    var fbo = gl.createFramebuffer();
+                    framebuffers.push(fbo);
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+                    // 绑定纹理到帧缓冲
+                    var attachmentPoint = gl.COLOR_ATTACHMENT0;
+                    gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, mipLevel);
+                }
+            }
+
+            function main() {
+                var image = new Image();
+                image.src = "./leaves.jpg";
+                image.onload = function () {
+                    render(image);
+                };
+                image.onerror = function (e) {
+                    console.error(e);
+                };
+            }
+            main();
+        </script>
+    </body>
+</html>
