@@ -10,4 +10,5 @@
 - [x] WebGLFundamentals.org和WebGL2Fundamentals.org的区别
 - [x] 图像处理
 - [x] [卷积核](https://docs.gimp.org/2.6/en/plug-in-convmatrix.html)
-- [ ] WebGL2 进一步处理图像
+- [x] WebGL2 进一步处理图像
+- [ ] WebGL2 使用多个纹理
