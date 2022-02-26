@@ -23,6 +23,7 @@ this.createProgram = function (gl, vertexShader, fragmentShader) {
 
     console.error(gl.getProgramInfoLog(program));
     gl.deleteProgram(program);
+    return null;
 };
 
 this.setRectangle = function (gl, x, y, width, height) {
@@ -44,4 +45,39 @@ this.createAndSetupTexture = function (gl) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
     return texture;
+};
+
+this.getGL = function (name) {
+    var canvas = document.querySelector("#c");
+    var gl = canvas.getContext("webgl2");
+    if (!gl) {
+        return null;
+    }
+    return gl;
+};
+
+this.loadImage = function (url, callback) {
+    var image = new Image();
+    image.src = url;
+    image.onload = callback;
+    return image;
+};
+
+this.loadImages = function (urls, callback) {
+    var images = [];
+    var imagesToLoad = urls.length;
+
+    // 每个图像加载完成后调用一次
+    var onImageLoad = function () {
+        --imagesToLoad;
+        // 如果所有图像都加载完成就调用回调函数
+        if (imagesToLoad === 0) {
+            callback(images);
+        }
+    };
+
+    for (var ii = 0; ii < imagesToLoad; ++ii) {
+        var image = loadImage(urls[ii], onImageLoad);
+        images.push(image);
+    }
 };
