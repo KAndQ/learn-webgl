@@ -17,4 +17,5 @@
 - [x] [卷积核](https://docs.gimp.org/2.6/en/plug-in-convmatrix.html)
 - [x] WebGL2 进一步处理图像
 - [x] WebGL2 使用多个纹理
-- [ ] WebGL2 二维平移
+- [x] WebGL2 二维平移
+- [ ] WebGL2 二维旋转
