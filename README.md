@@ -19,4 +19,5 @@
 - [x] WebGL2 使用多个纹理
 - [x] WebGL2 二维平移
 - [x] WebGL2 二维旋转
-- [ ] WebGL2 二维缩放
+- [x] WebGL2 二维缩放
+- [ ] WebGL2 二维矩阵
