@@ -20,6 +20,6 @@
 -   [x] WebGL2 二维平移
 -   [x] WebGL2 二维旋转
 -   [x] WebGL2 二维缩放
+-   [x] WebGL 矩阵 vs 数学中的矩阵
 -   [ ] WebGL2 二维矩阵
--   [ ] WebGL 矩阵 vs 数学中的矩阵
 -   [ ] 矩阵乘法的实现(仅仅是好玩)
