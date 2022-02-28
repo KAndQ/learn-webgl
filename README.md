@@ -4,6 +4,8 @@
 
 ## 环境
 
+-   nodejs 16.10.0
+
 `npm install -g http-server`
 `http-server ./ --cors -c-1 --gzip`
 
