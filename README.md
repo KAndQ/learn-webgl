@@ -7,6 +7,8 @@
 `npm install -g http-server`
 `http-server ./ --cors -c-1 --gzip`
 
+## 进度
+
 -   [x] 基本原理
 -   [x] 如何工作的
 -   [x] WebGL2 着色器和 GLSL 语言
