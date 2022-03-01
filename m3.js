@@ -9,8 +9,16 @@ function setNum(m, row, col, v) {
     return m;
 }
 
+function grid(m1, m2, row, col) {
+    var num = 0;
+    for (var i = 0; i < 3; ++i) {
+        num += getNum(m1, row, i) * getNum(m2, i, col);
+    }
+    return num;
+}
+
 /**
- * 注意这里的计算顺序, 是: MatrixB * MatrixA;
+ * 注意这里的计算顺序, 是: MatrixB(m x p) * MatrixA(p x n)
  */
 this.m3.multiply = function (a, b) {
     var a00 = a[0 * 3 + 0];
@@ -48,6 +56,9 @@ this.m3.multiply = function (a, b) {
     ];
 };
 
+/**
+ * 注意这里的计算顺序, 是: Matrix1(m x p) * Matrix2(p x n)
+ */
 this.m3.multiply1 = function (m1, m2) {
     var m1_00 = m1[0 * 3 + 0];
     var m1_01 = m1[0 * 3 + 1];
@@ -85,24 +96,15 @@ this.m3.multiply1 = function (m1, m2) {
     ];
 };
 
-this.m3.grid = function (m1, m2, row, col) {
-    var num = 0;
-    for (var i = 0; i < 3; ++i) {
-        num += getNum(m1, row, i) * getNum(m2, i, col);
-    }
-    return num;
-};
-
 /**
- * @param m1 3x3 matrix, linear array.
- * @param m2 3x3 matrix, linear array.
- * @return matrix, linear array.
+ * 注意这里的计算顺序, 是: Matrix1(m x p) * Matrix2(p x n)
+ * 与 multiply1 的意思一样, 只是实现方式不同
  */
 this.m3.multiply2 = function (m1, m2) {
     var m = [];
     for (var row = 0; row < 3; ++row) {
         for (var col = 0; col < 3; ++col) {
-            setNum(m, row, col, m3.grid(m1, m2, row, col));
+            setNum(m, row, col, grid(m1, m2, row, col));
         }
     }
     return m;
@@ -121,4 +123,39 @@ this.m3.print = function (m) {
     }
     s += "===========";
     console.log(s);
+};
+
+this.m3.translation = function (tx, ty) {
+    return [1, 0, 0, 0, 1, 0, tx, ty, 1];
+};
+
+this.m3.rotation = function (radian) {
+    var c = Math.cos(radian);
+    var s = Math.sin(radian);
+    return [c, -s, 0, s, c, 0, 0, 0, 1];
+};
+
+this.m3.scaling = function (sx, sy) {
+    return [sx, 0, 0, 0, sy, 0, 0, 0, 1];
+};
+
+this.m3.identity = function () {
+    return [1, 0, 0, 0, 1, 0, 0, 0, 1];
+};
+
+this.m3.projection = function (width, height) {
+    // 注意：这个矩阵翻转了 Y 轴，所以 0 在上方
+    return [2 / width, 0, 0, 0, -2 / height, 0, -1, 1, 1];
+};
+
+this.m3.translate = function (m, tx, ty) {
+    return m3.multiply(m, m3.translation(tx, ty));
+};
+
+this.m3.rotate = function (m, radian) {
+    return m3.multiply(m, m3.rotation(radian));
+};
+
+this.m3.scale = function (m, sx, sy) {
+    return m3.multiply(m, m3.scaling(sx, sy));
 };

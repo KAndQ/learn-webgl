@@ -81,3 +81,9 @@ this.loadImages = function (urls, callback) {
         images.push(image);
     }
 };
+
+this.drawArrays = function (gl, count, primitiveType, offset) {
+    primitiveType = primitiveType ? primitiveType : gl.TRIANGLES;
+    offset = offset === undefined ? 0 : offset;
+    gl.drawArrays(primitiveType, offset, count);
+};
