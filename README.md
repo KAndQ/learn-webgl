@@ -26,5 +26,5 @@
 -   [x] WebGL2 二维缩放
 -   [x] WebGL 矩阵 vs 数学中的矩阵
 -   [x] WebGL2 二维矩阵
--   [ ] WebGL2 实现 DrawImage 接口
 -   [ ] 矩阵乘法的实现(仅仅是好玩)
+-   [ ] WebGL2 实现 DrawImage 接口
