@@ -4,12 +4,23 @@
         <canvas id="c" width="640" height="480"></canvas>
         <script src="./buildin.js"></script>
         <script src="./m3.js"></script>
+        <script src="./matrix.js"></script>
         <script>
             var m1 = [1, 2, 3, 4, 5, 6, 7, 8, 9];
             var m2 = [9, 8, 7, 6, 5, 4, 3, 2, 1];
             m3.print(m3.multiply1(m1, m2));
             m3.print(m3.multiply2(m1, m2));
             m3.print(m3.multiply(m1, m2));
+            console.log(
+                matrix.multiply(
+                    [
+                        [1, 2, 3],
+                        [4, 5, 6],
+                        [7, 8, 9],
+                    ],
+                    [[1], [2], [3]]
+                )
+            );
 
             var gl = getGL();
             if (!gl) {
@@ -22,27 +33,27 @@
 
                 var vertexShaderSource = `#version 300 es
 
-in vec2 a_position;
-uniform mat3 u_matrix;
+            in vec2 a_position;
+            uniform mat3 u_matrix;
 
-void main() {
-  vec3 pos = u_matrix * vec3(a_position, 1.0);
-  gl_Position = vec4(pos.xy, 0, 1);
-}
-`;
+            void main() {
+              vec3 pos = u_matrix * vec3(a_position, 1.0);
+              gl_Position = vec4(pos.xy, 0, 1);
+            }
+            `;
 
                 var fragmentShaderSource = `#version 300 es
 
-precision highp float;
+            precision highp float;
 
-uniform vec4 u_color;
+            uniform vec4 u_color;
 
-out vec4 outColor;
+            out vec4 outColor;
 
-void main() {
-  outColor = u_color;
-}
-`;
+            void main() {
+              outColor = u_color;
+            }
+            `;
 
                 var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
                 var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);

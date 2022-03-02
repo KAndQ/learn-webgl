@@ -1,10 +1,10 @@
 this.m3 = {};
 
-function getNum(m, row, col) {
+function getNumWithM3(m, row, col) {
     return m[row * 3 + col];
 }
 
-function setNum(m, row, col, v) {
+function setNumWithM3(m, row, col, v) {
     m[row * 3 + col] = v;
     return m;
 }
@@ -12,7 +12,7 @@ function setNum(m, row, col, v) {
 function grid(m1, m2, row, col) {
     var num = 0;
     for (var i = 0; i < 3; ++i) {
-        num += getNum(m1, row, i) * getNum(m2, i, col);
+        num += getNumWithM3(m1, row, i) * getNumWithM3(m2, i, col);
     }
     return num;
 }
@@ -104,7 +104,7 @@ this.m3.multiply2 = function (m1, m2) {
     var m = [];
     for (var row = 0; row < 3; ++row) {
         for (var col = 0; col < 3; ++col) {
-            setNum(m, row, col, grid(m1, m2, row, col));
+            setNumWithM3(m, row, col, grid(m1, m2, row, col));
         }
     }
     return m;
@@ -114,7 +114,7 @@ this.m3.print = function (m) {
     var s = "== matrix ==\n";
     for (var row = 0; row < 3; ++row) {
         for (var col = 0; col < 3; ++col) {
-            s += getNum(m, row, col);
+            s += getNumWithM3(m, row, col);
             if (col !== 2) {
                 s += ", ";
             }
