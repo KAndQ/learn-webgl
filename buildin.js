@@ -48,7 +48,8 @@ this.createAndSetupTexture = function (gl) {
 };
 
 this.getGL = function (name) {
-    var canvas = document.querySelector("#c");
+    name = name ? name : "#c";
+    var canvas = document.querySelector(name);
     var gl = canvas.getContext("webgl2");
     if (!gl) {
         return null;
