@@ -111,7 +111,6 @@
                     gl.uniform4fv(colorUniformLocation, color);
 
                     gl.bindVertexArray(vao);
-                    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 
                     var translationMatrix = m3.translation(translation[0], translation[1]);
                     var rotationMatrix = m3.rotation(radian);
