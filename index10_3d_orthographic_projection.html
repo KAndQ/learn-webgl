@@ -290,7 +290,7 @@ void main() {
                 var color = [Math.random(), Math.random(), Math.random(), 1];
                 var scale = [1.0, 1.0, 1.0];
                 var rotation = [(40 / 180) * Math.PI, (25 / 180) * Math.PI, (325 / 180) * Math.PI];
-                var translation = [45, 150, 0];
+                var translation = [150, 150, 0];
 
                 // 计算矩阵
                 var matrix = m4.projection(gl.canvas.clientWidth, gl.canvas.clientHeight, 400);
@@ -311,6 +311,7 @@ void main() {
 
                 gl.bindVertexArray(vao);
 
+                gl.enable(gl.DEPTH_TEST);
                 gl.enable(gl.CULL_FACE);
 
                 drawArrays(gl, 96);
