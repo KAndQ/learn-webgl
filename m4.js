@@ -105,15 +105,33 @@ var m4 = {
 
     projection: function (width, height, depth) {
         // 注意：这个矩阵翻转了 Y 轴，所以 0 在上方
-        return [
-            2 / width, 0, 0, 0,
-            0, -2 / height, 0, 0,
-            0, 0, 2 / depth, 0,
-            -1, 1, 0, 1];
+        return [2 / width, 0, 0, 0, 0, -2 / height, 0, 0, 0, 0, 2 / depth, 0, -1, 1, 0, 1];
     },
 
     indetity: function () {
         return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+    },
+
+    orthographic: function (left, right, bottom, top, near, far) {
+        return [
+            2 / (right - left),
+            0,
+            0,
+            0,
+            0,
+            2 / (top - bottom),
+            0,
+            0,
+            0,
+            0,
+            2 / (near - far),
+            0,
+
+            (left + right) / (left - right),
+            (bottom + top) / (bottom - top),
+            (near + far) / (near - far),
+            1,
+        ];
     },
 };
 
