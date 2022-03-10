@@ -304,7 +304,18 @@ void main() {
                     gl.bindVertexArray(null);
                 }
 
+                var cameraAngleRadians = 0 / 180 * Math.PI;
                 function drawScene() {
+                    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+                    gl.clearColor(0, 0, 0, 1);
+                    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+                    gl.useProgram(program);
+                    gl.bindVertexArray(vao);
+                    gl.enable(gl.DEPTH_TEST);
+                    gl.enable(gl.CULL_FACE);
+
                     var numFs = 5;
                     var radius = 200;
 
@@ -313,7 +324,6 @@ void main() {
                     var zNear = 1;
                     var zFar = 2000;
                     var fieldOfViewRadians = 60 / 180 * Math.PI;
-                    var cameraAngleRadians = 0 / 180 * Math.PI;
                     var projectionMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
 
                     var cameraMatrix = m4.yRotation(cameraAngleRadians);
@@ -323,7 +333,7 @@ void main() {
                     var viewMatrix = m4.inverse(cameraMatrix);
 
                     // 将投影空间移动到视图空间（摄像机前方的空间）
-                    var viewProjectionMatrix = m4.multiply(projectionMatrix, viewMatrix);
+                    // var viewProjectionMatrix = m4.multiply(projectionMatrix, viewMatrix);
 
                     // 绘制一圈‘F’
                     for (var ii = 0; ii < numFs; ++ii) {
@@ -333,7 +343,8 @@ void main() {
                         var z = Math.sin(angle) * radius;
                         // 从视图投影矩阵开始
                         // 计算 F 的矩阵
-                        var matrix = m4.translate(viewProjectionMatrix, x, 0, z);
+                        var matrix = m4.translate(viewMatrix, x, 0, z);
+                        matrix = m4.multiply(projectionMatrix, matrix);
 
                         // 设置矩阵
                         gl.uniformMatrix4fv(matrixLocation, false, matrix);
@@ -346,17 +357,11 @@ void main() {
                     }
                 }
 
-                gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-                gl.clearColor(0, 0, 0, 1);
-                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-                gl.useProgram(program);
-                gl.bindVertexArray(vao);
-                gl.enable(gl.DEPTH_TEST);
-                gl.enable(gl.CULL_FACE);
-
                 drawScene();
+                setInterval(() => {
+                    cameraAngleRadians += 0.005;
+                    drawScene();
+                }, 0);
             }
             main();
         </script>
