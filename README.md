@@ -26,8 +26,11 @@
 -   [x] WebGL2 二维缩放
 -   [x] WebGL 矩阵 vs 数学中的矩阵
 -   [x] WebGL2 二维矩阵
--   [x] 矩阵乘法的实现(仅仅是好玩)
+-   [x] 矩阵乘法的实现(训练)
 -   [x] WebGL2 - 三维正射投影
 -   [x] WebGL2 三维透视投影
--   [ ] WebGL2 三维相机
+-   [x] WebGL2 三维相机
+-   [x] WebGL2 矩阵命名
+-   [x] WebGL 动画
+-   [ ] WebGL 三维纹理
 -   [ ] WebGL2 实现 DrawImage 接口
