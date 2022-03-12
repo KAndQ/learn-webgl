@@ -122,6 +122,7 @@ void main() {
                 var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
                 var offset = 0; // start at the beginning of the buffer
                 gl.vertexAttribPointer(texCoordAttributeLocation, size, type, normalize, stride, offset);
+                gl.bindVertexArray(null);
 
                 // Create a texture.
                 var texture = gl.createTexture();
@@ -147,7 +148,6 @@ void main() {
                 var srcFormat = gl.RGBA; // format of data we are supplying
                 var srcType = gl.UNSIGNED_BYTE; // type of data we are supplying
                 gl.texImage2D(gl.TEXTURE_2D, mipLevel, internalFormat, srcFormat, srcType, image);
-                gl.bindVertexArray(null);
 
                 gl.bindVertexArray(vao);
                 var positionBuffer = gl.createBuffer();
