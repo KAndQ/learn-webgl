@@ -32,5 +32,13 @@
 -   [x] WebGL2 三维相机
 -   [x] WebGL2 矩阵命名
 -   [x] WebGL 动画
--   [ ] WebGL 三维纹理
+-   [x] WebGL 纹理
+-   [x] WebGL2 纹理单元
+-   [x] WebGL 属性
 -   [ ] WebGL2 实现 DrawImage 接口
+-   [ ] 二维矩阵栈
+-   [ ] 文字 - HTML
+-   [ ] 文字 - 二维 Canvas
+-   [ ] WebGL2 文字 - 使用纹理
+-   [ ] 文字 - 使用字形纹理
+-   [ ] 精灵

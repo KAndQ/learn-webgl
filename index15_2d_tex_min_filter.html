@@ -1,0 +1,182 @@
+<html>
+    <head></head>
+    <body>
+        <canvas id="c" width="1280" height="800"></canvas>
+        <script src="./buildin.js"></script>
+        <script src="./m3.js"></script>
+        <script>
+            var vertexShaderSource = `#version 300 es
+// 属性是输入(in)顶点着色器的，从缓冲区接收数据
+in vec2 a_position;
+in vec2 a_texCoord;
+
+uniform mat3 u_matrix;
+
+// 定义一个传递给片段着色器的颜色变量
+out vec2 v_texCoord;
+
+// 所有着色器都有一个 main 函数
+void main() {
+  gl_Position = vec4((u_matrix * vec3(a_position, 1.0)).xy, 0.0, 1.0);
+  v_texCoord = a_texCoord;
+}`;
+            var fragmentShaderSource = `#version 300 es
+precision highp float;
+
+in vec2 v_texCoord;
+
+uniform sampler2D u_texture;
+
+out vec4 outColor;
+
+void main() {
+    outColor = texture(u_texture, vec2(v_texCoord.x, v_texCoord.y));
+}`;
+
+            function main(image) {
+                var gl = getGL();
+                if (!gl) {
+                    console.log("no webgl2");
+                    return;
+                }
+
+                var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+                var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+                var program = createProgram(gl, vertexShader, fragmentShader);
+
+                var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+                var texCoordAttributeLocation = gl.getAttribLocation(program, "a_texCoord");
+                var texLocation = gl.getUniformLocation(program, "u_texture");
+                var matrixLocation = gl.getUniformLocation(program, "u_matrix");
+
+                var vao = gl.createVertexArray();
+                // setPosition
+                {
+                    gl.bindVertexArray(vao);
+
+                    var positionBuffer = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 256, 0, 0, 256, 0, 256, 256, 0, 256, 256]), gl.STATIC_DRAW);
+                    gl.enableVertexAttribArray(positionAttributeLocation);
+                    gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+
+                    gl.bindVertexArray(null);
+                }
+
+                // setTexture
+                {
+                    gl.bindVertexArray(vao);
+
+                    var texCoordBuffer = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1]), gl.STATIC_DRAW);
+                    gl.enableVertexAttribArray(texCoordAttributeLocation);
+                    gl.vertexAttribPointer(texCoordAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+
+                    gl.bindVertexArray(null);
+                }
+
+                // load texture
+                var texture = gl.createTexture();
+                gl.activeTexture(gl.TEXTURE0 + 0);
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+
+                if (isPowerOf2(texture.width) && isPowerOf2(texture.height)) {
+                    console.log("==>> generateMipmap");
+                    gl.generateMipmap(gl.TEXTURE_2D);
+                } else {
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                    // NEAREST = 从最大的贴图中选择 1 个像素
+                    // LINEAR = 从最大的贴图中选择4个像素然后混合
+                    // NEAREST_MIPMAP_NEAREST = 选择最合适的贴图，然后从上面找到一个像素
+                    // LINEAR_MIPMAP_NEAREST = 选择最合适的贴图，然后取出 4 个像素进行混合
+                    // NEAREST_MIPMAP_LINEAR = 选择最合适的两个贴图，从每个上面选择 1 个像素然后混合
+                    // LINEAR_MIPMAP_LINEAR = 选择最合适的两个贴图，从每个上选择 4 个像素然后混合
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                }
+
+                gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+                const projection = m3.projection(gl.canvas.width, gl.canvas.height);
+                const FILTER_ENUMS = [
+                    gl.NEAREST,
+                    gl.LINEAR,
+                    gl.NEAREST_MIPMAP_NEAREST,
+                    gl.LINEAR_MIPMAP_NEAREST,
+                    gl.NEAREST_MIPMAP_LINEAR,
+                    gl.LINEAR_MIPMAP_LINEAR,
+                ];
+
+                function draw(i, x, y, sx, sy) {
+                    gl.useProgram(program);
+
+                    gl.bindVertexArray(vao);
+
+                    var matrix = m3.translate(projection, x, y);
+                    matrix = m3.scale(matrix, sx, sy);
+                    gl.uniformMatrix3fv(matrixLocation, false, matrix);
+
+                    gl.activeTexture(gl.TEXTURE0 + 0);
+                    gl.bindTexture(gl.TEXTURE_2D, texture);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, FILTER_ENUMS[i]);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                    gl.uniform1i(texLocation, 0);
+
+                    gl.enable(gl.DEPTH_TEST);
+
+                    drawArrays(gl, 6);
+                }
+
+                var x = 0;
+                var now = 0;
+                var offset = 150;
+                function move(time) {
+                    var elapse = (time - now) / 1000;
+                    now = time;
+                    x += elapse * 15;
+                    const mx = Math.sin((x / 180) * Math.PI) * 100;
+
+                    gl.clearColor(0.9, 0.9, 0.9, 1);
+                    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+                    var scale = 1.0;
+                    scale *= 0.5;
+                    for (var i = 0; i < FILTER_ENUMS.length; ++i) {
+                        draw(i, offset + mx + i * 276 * scale, 0, scale, scale);
+                    }
+                    scale *= 0.5;
+                    for (var i = 0; i < FILTER_ENUMS.length; ++i) {
+                        draw(i, offset + mx + i * 276 * scale, 200, scale, scale);
+                    }
+                    scale *= 0.5;
+                    for (var i = 0; i < FILTER_ENUMS.length; ++i) {
+                        draw(i, offset + mx + i * 276 * scale, 400, scale, scale);
+                    }
+                    scale *= 0.5;
+                    for (var i = 0; i < FILTER_ENUMS.length; ++i) {
+                        draw(i, offset + mx + i * 276 * scale, 600, scale, scale);
+                    }
+                    scale *= 0.5;
+                    for (var i = 0; i < FILTER_ENUMS.length; ++i) {
+                        draw(i, offset + mx + i * 276 * scale, 700, scale, scale);
+                    }
+
+                    requestAnimationFrame(move);
+                }
+                requestAnimationFrame(move);
+            }
+
+            var image = new Image();
+            image.src = "./f-texture.png";
+            image.onload = function () {
+                main(image);
+            };
+        </script>
+    </body>
+</html>

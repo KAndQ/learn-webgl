@@ -15,6 +15,11 @@ this.createProgram = function (gl, vertexShader, fragmentShader) {
     var program = gl.createProgram();
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
+
+    // 在链接到着色程序之前, 可以手动设置属性的 location
+    // gl.bindAttribLocation(program, location, nameOfAttribute)
+
+    // 将顶点着色器和片段着色器链接在一起
     gl.linkProgram(program);
     var success = gl.getProgramParameter(program, gl.LINK_STATUS);
     if (success) {
@@ -87,4 +92,8 @@ this.drawArrays = function (gl, count, primitiveType, offset) {
     primitiveType = primitiveType ? primitiveType : gl.TRIANGLES;
     offset = offset === undefined ? 0 : offset;
     gl.drawArrays(primitiveType, offset, count);
+};
+
+this.isPowerOf2 = function (value) {
+    return (value & (value - 1)) === 0;
 };

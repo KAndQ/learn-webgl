@@ -1,0 +1,30 @@
+<html>
+    <head></head>
+    <body>
+        <canvas id="c" width="640" height="480"></canvas>
+        <script src="./buildin.js"></script>
+        <script>
+            function main() {
+                const gl = getGL();
+                if (!gl) {
+                    console.log("Sorry! No Webgl2");
+                    return;
+                }
+
+                // https://webglfundamentals.org/webgl/lessons/zh_cn/webgl-texture-units.html
+                // gl.activeTexture(unit);
+                // gl.bindTexture(target, texture);
+                // gl.texImage2D(target, ...)
+                // gl.texParameteri(target)
+
+                const maxTextureUnits = gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+                const maxVertexShaderTextureUnits = gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS);
+                const maxFragmentShaderTextureUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+                console.log(`maxTextureUnits = ${maxTextureUnits}`);
+                console.log(`maxVertexShaderTextureUnits = ${maxVertexShaderTextureUnits}`);
+                console.log(`maxFragmentShaderTextureUnits = ${maxFragmentShaderTextureUnits}`);
+            }
+            main();
+        </script>
+    </body>
+</html>

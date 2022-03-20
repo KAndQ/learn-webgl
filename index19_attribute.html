@@ -1,0 +1,30 @@
+<html>
+    <head></head>
+    <body>
+        <canvas id="c" width="640" height="480"></canvas>
+        <script src="./buildin.js"></script>
+        <script>
+            function main() {
+                const gl = getGL();
+                if (!gl) {
+                    console.log("Sorry! No Webgl2");
+                    return;
+                }
+                const maxAttributes = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+                console.log(`maxAttributes = ${maxAttributes}`);
+
+                // gl.createBuffer
+                // gl.bindBuffer
+                // gl.bufferData
+
+                // https://webglfundamentals.org/webgl/lessons/zh_cn/webgl-attributes.html
+                // gl.enableVertexAttribArray(location)
+                // gl.disableVertexAttribArray(location)
+
+                // gl.vertexAttribXXX 函数来设置每个属性的值。当 enable 为 false 时，该值被使用。 当 enable 为 true 时，属性从分配的缓冲取值。
+                // gl.vertexAttribXXX 设置属性设置, 同时会将上面的 bindBuffer 设置给属性
+            }
+            main();
+        </script>
+    </body>
+</html>
