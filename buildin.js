@@ -7,7 +7,7 @@ this.createShader = function (gl, type, source) {
         return shader;
     }
 
-    console.error(gl.getShaderInfoLog(shader));
+    console.error(type === gl.VERTEX_SHADER ? "VertexShader" : "FragmentShader\n", gl.getShaderInfoLog(shader));
     gl.deleteShader(shader);
 };
 
