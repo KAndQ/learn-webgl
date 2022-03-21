@@ -35,7 +35,7 @@
 -   [x] WebGL 纹理
 -   [x] WebGL2 纹理单元
 -   [x] WebGL 属性
--   [ ] WebGL2 实现 DrawImage 接口
+-   [x] WebGL2 实现 DrawImage 接口
 -   [ ] 二维矩阵栈
 -   [ ] 文字 - HTML
 -   [ ] 文字 - 二维 Canvas
