@@ -12,10 +12,12 @@
                 }
 
                 // https://webglfundamentals.org/webgl/lessons/zh_cn/webgl-texture-units.html
+                // var texture = gl.createTexture();
                 // gl.activeTexture(unit);
                 // gl.bindTexture(target, texture);
-                // gl.texImage2D(target, ...)
-                // gl.texParameteri(target)
+                // gl.texImage2D(target, ...);
+                // gl.texParameteri(target, ...);
+                // gl.deleteTexture(texture);
 
                 const maxTextureUnits = gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS);
                 const maxVertexShaderTextureUnits = gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS);

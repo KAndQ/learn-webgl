@@ -13,16 +13,21 @@
                 const maxAttributes = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
                 console.log(`maxAttributes = ${maxAttributes}`);
 
-                // gl.createBuffer
+                // https://webglfundamentals.org/webgl/lessons/zh_cn/webgl-attributes.html
+                // var vao = gl.createVertexArray();
+                // gl.bindVertexArray(vao);
+
+                // gl.createBuffer/deleteBuffer
                 // gl.bindBuffer
                 // gl.bufferData
 
-                // https://webglfundamentals.org/webgl/lessons/zh_cn/webgl-attributes.html
                 // gl.enableVertexAttribArray(location)
                 // gl.disableVertexAttribArray(location)
 
                 // gl.vertexAttribXXX 函数来设置每个属性的值。当 enable 为 false 时，该值被使用。 当 enable 为 true 时，属性从分配的缓冲取值。
                 // gl.vertexAttribXXX 设置属性设置, 同时会将上面的 bindBuffer 设置给属性
+
+                // gl.bindVertexArray(null);
             }
             main();
         </script>
