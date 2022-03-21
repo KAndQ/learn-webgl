@@ -1,0 +1,297 @@
+<html>
+    <head></head>
+    <body>
+        <canvas id="c" width="480" height="320"></canvas>
+        <script src="./buildin.js"></script>
+        <script src="m4.js"></script>
+        <script>
+            function main() {
+                const gl = getGL();
+                if (!gl) {
+                    console.log(`Sorry! No webgl2.`);
+                    return;
+                }
+
+                const vertexShaderSource = `#version 300 es
+
+in vec4 a_position;
+
+uniform mat4 u_matrix;
+uniform mat4 u_textureMatrix;
+
+out vec2 v_texcoord;
+
+void main() {
+    gl_Position = u_matrix * a_position;
+    v_texcoord = (u_textureMatrix * a_position).xy;
+}
+`;
+                const fragmentShaderSource = `#version 300 es
+precision highp float;
+
+in vec2 v_texcoord;
+
+uniform sampler2D u_texture;
+
+out vec4 outColor;
+
+void main() {
+    if (v_texcoord.x < 0.0 ||
+        v_texcoord.y < 0.0 ||
+        v_texcoord.x > 1.0 ||
+        v_texcoord.y > 1.0) {
+        outColor = vec4(0, 0, 1, 1); // 蓝色
+        return;
+    }
+
+    outColor = texture(u_texture, v_texcoord);
+}
+`;
+
+                var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+                var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+                var program = createProgram(gl, vertexShader, fragmentShader);
+
+                var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+                var matrixLocation = gl.getUniformLocation(program, "u_matrix");
+                var textureLocation = gl.getUniformLocation(program, "u_texture");
+                var textureMatrixLocation = gl.getUniformLocation(program, "u_textureMatrix");
+
+                const vao = gl.createVertexArray();
+
+                // set position & set texcoords
+                {
+                    gl.bindVertexArray(vao);
+                    var positionBuffer = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
+                    gl.enableVertexAttribArray(positionAttributeLocation);
+                    gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+                    gl.bindVertexArray(null);
+                }
+
+                function drawImage(tex, texWidth, texHeight, srcX, srcY, srcWidth, srcHeight, dstX, dstY, dstWidth, dstHeight, srcRotation) {
+                    if (dstX === undefined) {
+                        dstX = srcX;
+                        srcX = 0;
+                    }
+
+                    if (dstY === undefined) {
+                        dstY = srcY;
+                        srcY = 0;
+                    }
+
+                    if (srcWidth === undefined) {
+                        srcWidth = texWidth;
+                    }
+
+                    if (srcHeight === undefined) {
+                        srcHeight = texHeight;
+                    }
+
+                    if (dstWidth === undefined) {
+                        dstWidth = srcWidth;
+                        srcWidth = texWidth;
+                    }
+
+                    if (dstHeight === undefined) {
+                        dstHeight = srcHeight;
+                        srcHeight = texHeight;
+                    }
+
+                    gl.useProgram(program);
+
+                    // 为矩形设置属性
+                    gl.bindVertexArray(vao);
+
+                    var textureUnit = 0;
+                    // 将纹理放在纹理单元 0 上
+                    gl.uniform1i(textureLocation, textureUnit);
+
+                    // 将纹理绑定到纹理单元 0
+                    gl.activeTexture(gl.TEXTURE0 + textureUnit);
+                    gl.bindTexture(gl.TEXTURE_2D, tex);
+
+                    // 从像素空间转换到裁剪空间
+                    var matrix = m4.orthographic(0, gl.canvas.width, gl.canvas.height, 0, -1, 1);
+
+                    // 平移到 dstX, dstY
+                    matrix = m4.translate(matrix, dstX, dstY, 0);
+
+                    // 将单位矩形的宽和高缩放 texWidth, texHeight 个单位长度
+                    matrix = m4.scale(matrix, dstWidth, dstHeight, 1);
+
+                    // 设置矩阵
+                    gl.uniformMatrix4fv(matrixLocation, false, matrix);
+
+                    // 像二维投影矩阵那样将坐标从纹理空间转换到像素空间
+                    var texMatrix = m4.scaling(1 / texWidth, 1 / texHeight, 1);
+
+                    // 选择一个旋转中心
+                    // 移动到中心旋转后在回来
+                    texMatrix = m4.translate(texMatrix, texWidth * 0.5, texHeight * 0.5, 0);
+                    texMatrix = m4.zRotate(texMatrix, srcRotation);
+                    texMatrix = m4.translate(texMatrix, texWidth * -0.5, texHeight * -0.5, 0);
+
+                    // 因为在像素空间，缩放和平移现在是按像素单位
+                    texMatrix = m4.translate(texMatrix, srcX, srcY, 0);
+                    texMatrix = m4.scale(texMatrix, srcWidth, srcHeight, 1);
+
+                    // 设置纹理矩阵
+                    gl.uniformMatrix4fv(textureMatrixLocation, false, texMatrix);
+
+                    // 绘制矩形 (2 个三角形, 6 个顶点)
+                    var offset = 0;
+                    var count = 6;
+                    gl.drawArrays(gl.TRIANGLES, offset, count);
+                }
+
+                // 创建一个纹理信息 { width: w, height: h, texture: tex }
+                // 纹理起初为 1x1 像素，当图像加载完成后更新大小
+                function loadImageAndCreateTextureInfo(url) {
+                    var tex = gl.createTexture();
+                    var textureInfo = {
+                        width: 1, // 图像加载前不知道大小
+                        height: 1,
+                        texture: tex,
+                    };
+
+                    gl.bindTexture(gl.TEXTURE_2D, tex);
+                    // https://developer.mozilla.org/zh-CN/docs/Web/API/WebGLRenderingContext/texImage2D
+                    gl.texImage2D(
+                        gl.TEXTURE_2D,
+                        0,
+                        gl.RGBA,
+                        textureInfo.width,
+                        textureInfo.height,
+                        0,
+                        gl.RGBA,
+                        gl.UNSIGNED_BYTE,
+                        new Uint8Array([0, 0, 0, 255]),
+                        0
+                    );
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+                    var img = new Image();
+                    img.src = url;
+                    img.addEventListener("load", function () {
+                        textureInfo.width = img.width;
+                        textureInfo.height = img.height;
+
+                        gl.bindTexture(gl.TEXTURE_2D, textureInfo.texture);
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+                        gl.generateMipmap(gl.TEXTURE_2D);
+                    });
+
+                    return textureInfo;
+                }
+
+                var textureInfos = [
+                    loadImageAndCreateTextureInfo("./star.jpg"),
+                    loadImageAndCreateTextureInfo("./leaves.jpg"),
+                    loadImageAndCreateTextureInfo("./keyboard.jpg"),
+                ];
+
+                var drawInfos = [];
+                var numToDraw = 9;
+                var speed = 60;
+                var angleSpeed = 30;
+                for (var ii = 0; ii < numToDraw; ++ii) {
+                    var scale = Math.random() * 0.25 + 0.25;
+                    var drawInfo = {
+                        x: Math.random() * gl.canvas.width,
+                        y: Math.random() * gl.canvas.height,
+                        dx: Math.random() > 0.5 ? -1 : 1,
+                        dy: Math.random() > 0.5 ? -1 : 1,
+                        xScale: scale,
+                        yScale: scale,
+                        offX: 0,
+                        offY: 0,
+                        textureInfo: textureInfos[(Math.random() * textureInfos.length) | 0],
+                        srcRotation: Math.PI * Math.random(),
+                    };
+                    drawInfo.width = 1;
+                    drawInfo.height = 1;
+
+                    if (Math.random() > 0.5) {
+                        drawInfo.xScale *= -1;
+                    } else {
+                        drawInfo.offX = 1 - drawInfo.offX;
+                        drawInfo.width *= -1;
+                    }
+
+                    if (Math.random() > 0.5) {
+                        drawInfo.yScale *= -1;
+                    } else {
+                        drawInfo.offY = 1 - drawInfo.offY;
+                        drawInfo.height *= -1;
+                    }
+
+                    drawInfos.push(drawInfo);
+                }
+
+                function update(deltaTime) {
+                    drawInfos.forEach(function (drawInfo) {
+                        drawInfo.x += drawInfo.dx * speed * deltaTime;
+                        drawInfo.y += drawInfo.dy * speed * deltaTime;
+                        if (drawInfo.x < 0) {
+                            drawInfo.dx = 1;
+                        }
+                        if (drawInfo.x >= gl.canvas.width) {
+                            drawInfo.dx = -1;
+                        }
+                        if (drawInfo.y < 0) {
+                            drawInfo.dy = 1;
+                        }
+                        if (drawInfo.y >= gl.canvas.height) {
+                            drawInfo.dy = -1;
+                        }
+
+                        drawInfo.srcRotation += (angleSpeed / 180) * Math.PI * deltaTime;
+                    });
+                }
+
+                function draw() {
+                    // 告诉 WebGL 如何从裁剪空间转换到像素空间
+                    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+                    // 清空画布
+                    gl.clearColor(0, 0, 0, 0);
+                    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+                    drawInfos.forEach(function (drawInfo) {
+                        drawImage(
+                            drawInfo.textureInfo.texture,
+                            drawInfo.textureInfo.width,
+                            drawInfo.textureInfo.height,
+                            drawInfo.offX * drawInfo.textureInfo.width,
+                            drawInfo.offY * drawInfo.textureInfo.height,
+                            drawInfo.width * drawInfo.textureInfo.width,
+                            drawInfo.height * drawInfo.textureInfo.height,
+                            drawInfo.x,
+                            drawInfo.y,
+                            drawInfo.xScale * drawInfo.textureInfo.width,
+                            drawInfo.yScale * drawInfo.textureInfo.height,
+                            drawInfo.srcRotation
+                        );
+                    });
+                }
+
+                var then = 0;
+                function render(time) {
+                    var now = time * 0.001;
+                    var deltaTime = Math.min(0.1, now - then);
+                    then = now;
+
+                    update(deltaTime);
+                    draw();
+
+                    requestAnimationFrame(render);
+                }
+                requestAnimationFrame(render);
+            }
+            main();
+        </script>
+    </body>
+</html>
