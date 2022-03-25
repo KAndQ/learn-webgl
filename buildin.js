@@ -97,3 +97,7 @@ this.drawArrays = function (gl, count, primitiveType, offset) {
 this.isPowerOf2 = function (value) {
     return (value & (value - 1)) === 0;
 };
+
+this.toRadian = function (angle) {
+    return (angle / 180) * Math.PI;
+};
