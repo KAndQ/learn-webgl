@@ -1,0 +1,246 @@
+<html>
+    <head></head>
+    <body>
+        <canvas id="c" width="640" height="480"></canvas>
+        <script src="./buildin.js"></script>
+        <script src="m4.js"></script>
+        <script src="./MatrixStack.js"></script>
+        <script>
+            function main() {
+                const gl = getGL();
+                if (!gl) {
+                    console.log(`Sorry! No webgl2.`);
+                    return;
+                }
+
+                const vertexShaderSource = `#version 300 es
+
+in vec4 a_position;
+in vec2 a_texcoord;
+
+uniform mat4 u_matrix;
+
+out vec2 v_texcoord;
+
+void main() {
+   gl_Position = u_matrix * a_position;
+   v_texcoord = a_texcoord;
+}
+`;
+                const fragmentShaderSource = `#version 300 es
+precision highp float;
+
+in vec2 v_texcoord;
+
+uniform sampler2D u_texture;
+
+out vec4 outColor;
+
+void main() {
+   outColor = texture(u_texture, v_texcoord);
+}
+`;
+
+                const matrixStack = new MatrixStack();
+
+                var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+                var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+                var program = createProgram(gl, vertexShader, fragmentShader);
+
+                var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+                var texcoordAttributeLocation = gl.getAttribLocation(program, "a_texcoord");
+                var matrixLocation = gl.getUniformLocation(program, "u_matrix");
+                var textureLocation = gl.getUniformLocation(program, "u_texture");
+
+                const vao = gl.createVertexArray();
+
+                // set position
+                {
+                    gl.bindVertexArray(vao);
+                    var positionBuffer = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
+                    gl.enableVertexAttribArray(positionAttributeLocation);
+                    gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+                    gl.bindVertexArray(null);
+                }
+
+                // set texcoord
+                {
+                    gl.bindVertexArray(vao);
+
+                    var texCoordBuffer = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
+                    gl.enableVertexAttribArray(texcoordAttributeLocation);
+                    gl.vertexAttribPointer(texcoordAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+                    gl.bindVertexArray(null);
+                }
+
+                function drawImage(tex, texWidth, texHeight, dstX, dstY) {
+                    gl.useProgram(program);
+
+                    // 为矩形设置属性
+                    gl.bindVertexArray(vao);
+
+                    var textureUnit = 0;
+                    // 将纹理放在纹理单元 0 上
+                    gl.uniform1i(textureLocation, textureUnit);
+
+                    // 将纹理绑定到纹理单元 0
+                    gl.activeTexture(gl.TEXTURE0 + textureUnit);
+                    gl.bindTexture(gl.TEXTURE_2D, tex);
+
+                    // 从像素空间转换到裁剪空间
+                    var matrix = m4.orthographic(0, gl.canvas.width, gl.canvas.height, 0, -1, 1);
+
+                    // 矩阵堆栈以像素为单位，因此它在上面的投影之后将我们的空间从剪辑空间转换为像素空间
+                    matrix = m4.multiply(matrix, matrixStack.getCurrentMatrix());
+
+                    // 平移到 dstX, dstY
+                    matrix = m4.translate(matrix, dstX, dstY, 0);
+
+                    // 将单位矩形的宽和高缩放 texWidth, texHeight 个单位长度
+                    matrix = m4.scale(matrix, texWidth, texHeight, 1);
+
+                    // 设置矩阵
+                    gl.uniformMatrix4fv(matrixLocation, false, matrix);
+
+                    // 绘制矩形 (2 个三角形, 6 个顶点)
+                    var offset = 0;
+                    var count = 6;
+                    gl.drawArrays(gl.TRIANGLES, offset, count);
+                }
+
+                // 创建一个纹理信息 { width: w, height: h, texture: tex }
+                // 纹理起初为 1x1 像素，当图像加载完成后更新大小
+                function loadImageAndCreateTextureInfo(url) {
+                    var tex = gl.createTexture();
+                    var textureInfo = {
+                        width: 1, // 图像加载前不知道大小
+                        height: 1,
+                        texture: tex,
+                    };
+
+                    gl.bindTexture(gl.TEXTURE_2D, tex);
+                    // https://developer.mozilla.org/zh-CN/docs/Web/API/WebGLRenderingContext/texImage2D
+                    gl.texImage2D(
+                        gl.TEXTURE_2D,
+                        0,
+                        gl.RGBA,
+                        textureInfo.width,
+                        textureInfo.height,
+                        0,
+                        gl.RGBA,
+                        gl.UNSIGNED_BYTE,
+                        new Uint8Array([0, 0, 0, 255]),
+                        0
+                    );
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+                    var img = new Image();
+                    img.src = url;
+                    img.addEventListener("load", function () {
+                        textureInfo.width = img.width;
+                        textureInfo.height = img.height;
+
+                        gl.bindTexture(gl.TEXTURE_2D, textureInfo.texture);
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+                        gl.generateMipmap(gl.TEXTURE_2D);
+                    });
+
+                    return textureInfo;
+                }
+
+                var textureInfo = loadImageAndCreateTextureInfo("./star.jpg");
+
+                function draw(time) {
+                    // 告诉 WebGL 如何从裁剪空间转换到像素空间
+                    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+                    // 清空画布
+                    gl.clearColor(1, 1, 0, 1);
+                    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+                    matrixStack.save();
+                    matrixStack.translate(gl.canvas.width / 2, gl.canvas.height / 2);
+                    matrixStack.rotateZ(time);
+
+                    matrixStack.save();
+                    {
+                        // AnchorPoint
+                        matrixStack.translate(textureInfo.width / -2, textureInfo.height / -2);
+
+                        drawImage(textureInfo.texture, textureInfo.width, textureInfo.height, 0, 0);
+                    }
+                    matrixStack.restore();
+
+                    matrixStack.save();
+                    {
+                        // 我们在中间图像的中心，所以去左上角
+                        matrixStack.translate(textureInfo.width / -2, textureInfo.height / -2);
+                        matrixStack.rotateZ(Math.sin(time * 2.2));
+                        matrixStack.scale(0.2, 0.2);
+                        // 我想让图像的右下角绘制在这里
+                        matrixStack.translate(-textureInfo.width, -textureInfo.height); // AnchorPoint
+
+                        drawImage(textureInfo.texture, textureInfo.width, textureInfo.height, 0, 0);
+                    }
+                    matrixStack.restore();
+
+                    matrixStack.save();
+                    {
+                        // 我们在中间图像的中心，所以去右上角
+                        matrixStack.translate(textureInfo.width / 2, textureInfo.height / -2);
+                        matrixStack.rotateZ(Math.sin(time * 2.3));
+                        matrixStack.scale(0.2, 0.2);
+                        // 我想让图像的左下角绘制在这里
+                        matrixStack.translate(0, -textureInfo.height); // AnchorPoint
+
+                        drawImage(textureInfo.texture, textureInfo.width, textureInfo.height, 0, 0);
+                    }
+                    matrixStack.restore();
+
+                    matrixStack.save();
+                    {
+                        // 我们在中间图像的中心，所以去左下角
+                        matrixStack.translate(textureInfo.width / -2, textureInfo.height / 2);
+                        matrixStack.rotateZ(Math.sin(time * 2.4));
+                        matrixStack.scale(0.2, 0.2);
+                        // 我想让图像的右上角绘制在这里
+                        matrixStack.translate(-textureInfo.width, 0); // AnchorPoint
+
+                        drawImage(textureInfo.texture, textureInfo.width, textureInfo.height, 0, 0);
+                    }
+                    matrixStack.restore();
+
+                    matrixStack.save();
+                    {
+                        // 我们在中间图像的中心，所以去右下角
+                        matrixStack.translate(textureInfo.width / 2, textureInfo.height / 2);
+                        matrixStack.rotateZ(Math.sin(time * 2.5));
+                        matrixStack.scale(0.2, 0.2);
+                        // 我想让图像的左上角绘制在这里
+                        matrixStack.translate(0, 0); // 0,0 means this line is not really doing anything, AnchorPoint
+
+                        drawImage(textureInfo.texture, textureInfo.width, textureInfo.height, 0, 0);
+                    }
+                    matrixStack.restore();
+
+                    matrixStack.restore();
+                }
+
+                function render(time) {
+                    time *= 0.001;
+
+                    draw(time);
+
+                    requestAnimationFrame(render);
+                }
+                requestAnimationFrame(render);
+            }
+            main();
+        </script>
+    </body>
+</html>
