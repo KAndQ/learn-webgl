@@ -1,7 +1,7 @@
 (function () {
     const primitives = {};
 
-    primitives.create3DFBufferInfo = function (gl) {
+    primitives.create3DFInfo = function (gl) {
         var vertexShaderSource = `#version 300 es
 // 属性是输入(in)顶点着色器的，从缓冲区接收数据
 in vec4 a_position;
@@ -36,6 +36,7 @@ void main() {
         var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
         var colorAttributeLocation = gl.getAttribLocation(program, "a_color");
         var matrixLocation = gl.getUniformLocation(program, "u_matrix");
+        const programInfo = { program, positionAttributeLocation, colorAttributeLocation, matrixLocation };
 
         var vao = gl.createVertexArray();
         gl.bindVertexArray(vao);
@@ -186,10 +187,98 @@ void main() {
         setColors(gl);
         gl.bindVertexArray(null);
 
-        return { vao, matrixLocation, program };
+        const bufferInfo = { vao, positionBuffer, colorBuffer };
+
+        return { bufferInfo, programInfo, vertexCount: 96 };
     };
 
-    primitives.createXYQuadBufferInfo = function (gl, size) {};
+    primitives.createXYQuadInfo = function (gl, size) {
+        var vertexShaderSource = `#version 300 es
+precision highp float;
+
+in vec4 a_position;
+in vec2 a_texCoord;
+
+uniform mat4 u_matrix;
+
+out vec2 v_texCoord;
+
+void main() {
+  gl_Position = u_matrix * a_position;
+  v_texCoord = a_texCoord;
+}
+`;
+
+        var fragmentShaderSource = `#version 300 es
+precision highp float;
+
+in vec2 v_texCoord;
+
+uniform sampler2D u_image;
+
+out vec4 outColor;
+
+void main() {
+    outColor = texture(u_image, v_texCoord);
+}
+`;
+
+        var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+        var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+        var program = createProgram(gl, vertexShader, fragmentShader);
+
+        var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+        var texCoordAttributeLocation = gl.getAttribLocation(program, "a_texCoord");
+        var matrixLocation = gl.getUniformLocation(program, "u_matrix");
+        var imageLocation = gl.getUniformLocation(program, "u_image");
+        const programInfo = { program, positionAttributeLocation, texCoordAttributeLocation, matrixLocation, imageLocation };
+
+        var vao = gl.createVertexArray();
+
+        // provide texture coordinates for the rectangle.
+        gl.bindVertexArray(vao);
+        var positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array([
+                -size * 0.5,
+                -size * 0.5,
+                0,
+                size * 0.5,
+                -size * 0.5,
+                0,
+                -size * 0.5,
+                size * 0.5,
+                0,
+                -size * 0.5,
+                size * 0.5,
+                0,
+                size * 0.5,
+                -size * 0.5,
+                0,
+                size * 0.5,
+                size * 0.5,
+                0,
+            ]),
+            gl.STATIC_DRAW
+        );
+        gl.enableVertexAttribArray(positionAttributeLocation);
+        gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+        gl.bindVertexArray(null);
+
+        gl.bindVertexArray(vao);
+        var texCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0]), gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(texCoordAttributeLocation);
+        gl.vertexAttribPointer(texCoordAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+        gl.bindVertexArray(null);
+
+        const bufferInfo = { vao, positionBuffer, texCoordBuffer };
+
+        return { bufferInfo, programInfo, vertexCount: 6 };
+    };
 
     this.primitives = primitives;
 })();

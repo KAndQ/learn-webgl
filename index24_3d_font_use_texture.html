@@ -1,0 +1,162 @@
+<html>
+    <head></head>
+    <body>
+        <canvas id="c" width="640" height="480"></canvas>
+        <script src="./buildin.js"></script>
+        <script src="./m4.js"></script>
+        <script src="./primitives.js"></script>
+        <script>
+            const textCtx = document.createElement("canvas").getContext("2d");
+
+            // 将文字放在画布中间
+            function makeTextCanvas(text, width, height) {
+                textCtx.canvas.width = width;
+                textCtx.canvas.height = height;
+                textCtx.font = "20px monospace";
+                textCtx.textAlign = "center";
+                textCtx.textBaseline = "middle";
+                textCtx.fillStyle = "black";
+                textCtx.clearRect(0, 0, textCtx.canvas.width, textCtx.canvas.height);
+                textCtx.fillText(text, width / 2, height / 2);
+                return textCtx.canvas;
+            }
+
+            function main(image) {
+                const gl = getGL();
+                if (!gl) {
+                    console.log("Sorry! No webgl2");
+                    return;
+                }
+
+                const fInfo = primitives.create3DFInfo(gl);
+                const textInfo = primitives.createXYQuadInfo(gl, 1);
+
+                if (!image) {
+                    image = makeTextCanvas("Hello!", 100, 26);
+                }
+                var textWidth = image.width;
+                var textHeight = image.height;
+                var textTex = gl.createTexture();
+                gl.activeTexture(gl.TEXTURE0 + 0);
+                gl.bindTexture(gl.TEXTURE_2D, textTex);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+                gl.generateMipmap(gl.TEXTURE_2D);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+                var fUniforms = {
+                    u_matrix: m4.identity(),
+                };
+
+                var textUniforms = {
+                    u_matrix: m4.identity(),
+                    u_texture: textTex,
+                };
+
+                var translation = [0, 30, 0];
+                var rotation = [degToRad(190), degToRad(0), degToRad(0)];
+                var scale = [1, 1, 1];
+                var fieldOfViewRadians = degToRad(60);
+                var rotationSpeed = 1.2;
+
+                var then = 0;
+
+                requestAnimationFrame(drawScene);
+
+                function drawScene(time) {
+                    // Convert to seconds
+                    var now = time * 0.001;
+                    // Subtract the previous time from the current time
+                    var deltaTime = now - then;
+                    // Remember the current time for the next frame.
+                    then = now;
+
+                    // Every frame increase the rotation a little.
+                    rotation[1] += rotationSpeed * deltaTime;
+
+                    // Tell WebGL how to convert from clip space to pixels
+                    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+                    // Clear the canvas
+                    gl.clearColor(0, 0, 0, 0);
+                    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+                    // turn on depth testing
+                    gl.enable(gl.DEPTH_TEST);
+
+                    // tell webgl to cull faces
+                    gl.enable(gl.CULL_FACE);
+
+                    gl.enable(gl.BLEND);
+                    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+                    // Compute the matrix
+                    var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+                    var zNear = 1;
+                    var zFar = 2000;
+                    var projectionMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
+
+                    // Compute the camera's matrix using look at.
+                    var cameraRadius = 360;
+                    var cameraPosition = [Math.cos(now) * cameraRadius, 0, Math.sin(now) * cameraRadius];
+                    var target = [0, 0, 0];
+                    var up = [0, 1, 0];
+                    var cameraMatrix = m4.lookAt(cameraPosition, target, up);
+                    var viewMatrix = m4.inverse(cameraMatrix);
+
+                    var spread = 170;
+                    for (var yy = -1; yy <= 1; ++yy) {
+                        for (var xx = -2; xx <= 2; ++xx) {
+                            var fViewMatrix = m4.translate(viewMatrix, translation[0] + xx * spread, translation[1] + yy * spread, translation[2]);
+                            fViewMatrix = m4.xRotate(fViewMatrix, rotation[0]);
+                            fViewMatrix = m4.yRotate(fViewMatrix, rotation[1] + yy * xx * 0.2);
+                            fViewMatrix = m4.zRotate(fViewMatrix, rotation[2] + now + (yy * 3 + xx) * 0.1);
+                            fViewMatrix = m4.scale(fViewMatrix, scale[0], scale[1], scale[2]);
+                            fViewMatrix = m4.translate(fViewMatrix, -50, -75, 0);
+
+                            // setup to draw the 'F'
+                            gl.useProgram(fInfo.programInfo.program);
+
+                            // setup the attributes and buffers for the F
+                            gl.bindVertexArray(fInfo.bufferInfo.vao);
+
+                            fUniforms.u_matrix = m4.multiply(projectionMatrix, fViewMatrix);
+                            gl.uniformMatrix4fv(fInfo.programInfo.matrixLocation, false, fUniforms.u_matrix);
+
+                            gl.drawArrays(gl.TRIANGLES, 0, fInfo.vertexCount);
+
+                            // use just the view position of the 'F' for the text
+                            var textMatrix = m4.translate(projectionMatrix, fViewMatrix[12], fViewMatrix[13], fViewMatrix[14]);
+
+                            // scale the F to the size we need it.
+                            textMatrix = m4.scale(textMatrix, textWidth, textHeight, 1);
+
+                            // setup to draw the text.
+                            gl.useProgram(textInfo.programInfo.program);
+
+                            gl.bindVertexArray(textInfo.bufferInfo.vao);
+
+                            gl.activeTexture(gl.TEXTURE0 + 0);
+                            gl.bindTexture(gl.TEXTURE_2D, textUniforms.u_texture);
+                            textUniforms.u_matrix = textMatrix;
+                            gl.uniformMatrix4fv(textInfo.programInfo.matrixLocation, false, textUniforms.u_matrix);
+                            gl.uniform1i(textInfo.programInfo.textureLocation, 0);
+
+                            // Draw the text.
+                            gl.drawArrays(gl.TRIANGLES, 0, textInfo.vertexCount);
+                        }
+                    }
+
+                    requestAnimationFrame(drawScene);
+                }
+            }
+            main();
+
+            // const image = new Image();
+            // image.src = "./leaves.jpg";
+            // image.onload = function () {
+            //     main(image);
+            // };
+        </script>
+    </body>
+</html>

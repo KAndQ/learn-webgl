@@ -101,3 +101,5 @@ this.isPowerOf2 = function (value) {
 this.toRadian = function (angle) {
     return (angle / 180) * Math.PI;
 };
+
+this.degToRad = toRadian;
