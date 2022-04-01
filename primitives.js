@@ -215,11 +215,12 @@ precision highp float;
 in vec2 v_texCoord;
 
 uniform sampler2D u_image;
+uniform vec4 u_color;
 
 out vec4 outColor;
 
 void main() {
-    outColor = texture(u_image, v_texCoord);
+    outColor = texture(u_image, v_texCoord) * u_color;
 }
 `;
 
@@ -231,7 +232,8 @@ void main() {
         var texCoordAttributeLocation = gl.getAttribLocation(program, "a_texCoord");
         var matrixLocation = gl.getUniformLocation(program, "u_matrix");
         var imageLocation = gl.getUniformLocation(program, "u_image");
-        const programInfo = { program, positionAttributeLocation, texCoordAttributeLocation, matrixLocation, imageLocation };
+        var colorLocation = gl.getUniformLocation(program, "u_color");
+        const programInfo = { program, positionAttributeLocation, texCoordAttributeLocation, matrixLocation, imageLocation, colorLocation };
 
         var vao = gl.createVertexArray();
 
