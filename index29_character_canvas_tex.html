@@ -12,7 +12,7 @@
             function makeTextCanvas(text, width, height) {
                 textCtx.canvas.width = width;
                 textCtx.canvas.height = height;
-                textCtx.font = "32px monospace";
+                textCtx.font = "20px monospace";
                 textCtx.textAlign = "center";
                 textCtx.textBaseline = "middle";
                 textCtx.fillStyle = "white";
@@ -31,7 +31,7 @@
                 const fInfo = primitives.create3DFInfo(gl);
                 const textInfo = primitives.createXYQuadInfo(gl, 1);
 
-                const textTextures = [
+                var names = [
                     "anna", // 0
                     "colin", // 1
                     "james", // 2
@@ -48,18 +48,47 @@
                     "evan", // 13,
                     "sakura", // 14,
                     "kai", // 15,
+                ];
+
+                // 创建文字纹理，一个字母一个
+                var textTextures = [
+                    "a", // 0
+                    "b", // 1
+                    "c", // 2
+                    "d", // 3
+                    "e", // 4
+                    "f", // 5
+                    "g", // 6
+                    "h", // 7
+                    "i", // 8
+                    "j", // 9
+                    "k", // 10
+                    "l", // 11
+                    "m", // 12,
+                    "n", // 13,
+                    "o", // 14,
+                    "p", // 14,
+                    "q", // 14,
+                    "r", // 14,
+                    "s", // 14,
+                    "t", // 14,
+                    "u", // 14,
+                    "v", // 14,
+                    "w", // 14,
+                    "x", // 14,
+                    "y", // 14,
+                    "z", // 14,
                 ].map(function (name) {
-                    var textCanvas = makeTextCanvas(name, 120, 36);
-                    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+                    var textCanvas = makeTextCanvas(name, 10, 26);
                     var textWidth = textCanvas.width;
                     var textHeight = textCanvas.height;
                     var textTex = gl.createTexture();
                     gl.activeTexture(gl.TEXTURE0 + 0);
                     gl.bindTexture(gl.TEXTURE_2D, textTex);
+                    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
                     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textCanvas);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
                     gl.generateMipmap(gl.TEXTURE_2D);
-                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
                     return {
                         name,
                         texture: textTex,
@@ -159,52 +188,47 @@
                     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
                     gl.depthMask(false);
 
-                    textPositions.forEach((position, index) => {
-                        var text = textTextures[index % textTextures.length];
+                    gl.useProgram(textInfo.programInfo.program);
+                    gl.bindVertexArray(textInfo.bufferInfo.vao);
+                    textPositions.forEach((pos, index) => {
+                        var name = names[index % names.length];
 
-                        // 由于 pos 在视图空间，表示它是一个从眼睛位置出发的一个向量
-                        // 所以沿着向量朝眼睛方向移动一定距离
-                        var fromEye = m4.normalize(position);
-                        var amountToMoveTowardEye = 150; // 因为 F 是 150 个单位长
-                        var viewX = position[0] - fromEye[0] * amountToMoveTowardEye;
-                        var viewY = position[1] - fromEye[1] * amountToMoveTowardEye;
-                        var viewZ = position[2] - fromEye[2] * amountToMoveTowardEye;
-                        var desiredTextScale = -1 / gl.canvas.height; // 1x1 像素大小
-                        var s = viewZ * desiredTextScale;
+                        for (var ii = 0; ii < name.length; ++ii) {
+                            var letter = name.charCodeAt(ii);
+                            var letterNdx = letter - "a".charCodeAt(0);
 
-                        // use just the view position of the 'F' for the text
-                        var textMatrix = m4.translate(projectionMatrix, viewX, viewY, viewZ);
+                            // 选择一个字母纹理
+                            var tex = textTextures[letterNdx];
 
-                        // scale the F to the size we need it.
-                        textMatrix = m4.scale(textMatrix, text.width * s, text.height * s, 1);
+                            var fromEye = m4.normalize(pos);
+                            var amountToMoveTowardEye = 150; // 因为 F 是 150 个单位长
+                            var viewX = pos[0] - fromEye[0] * amountToMoveTowardEye;
+                            var viewY = pos[1] - fromEye[1] * amountToMoveTowardEye;
+                            var viewZ = pos[2] - fromEye[2] * amountToMoveTowardEye;
+                            var desiredTextScale = -1 / gl.canvas.height; // 1x1 像素大小
+                            var scale = viewZ * desiredTextScale;
 
-                        // setup to draw the text.
-                        gl.useProgram(textInfo.programInfo.program);
+                            var textMatrix = m4.translate(projectionMatrix, viewX, viewY, viewZ);
+                            textMatrix = m4.scale(textMatrix, tex.width * scale, tex.height * scale, 1);
+                            textMatrix = m4.translate(textMatrix, ii, 0, 0);
 
-                        gl.bindVertexArray(textInfo.bufferInfo.vao);
+                            gl.activeTexture(gl.TEXTURE0 + 0);
+                            textUniforms.u_texture = tex.texture;
+                            gl.bindTexture(gl.TEXTURE_2D, textUniforms.u_texture);
+                            textUniforms.u_matrix = textMatrix;
+                            gl.uniformMatrix4fv(textInfo.programInfo.matrixLocation, false, textUniforms.u_matrix);
+                            gl.uniform1i(textInfo.programInfo.textureLocation, 0);
+                            gl.uniform4fv(textInfo.programInfo.colorLocation, tex.color);
 
-                        gl.activeTexture(gl.TEXTURE0 + 0);
-                        textUniforms.u_texture = text.texture;
-                        gl.bindTexture(gl.TEXTURE_2D, textUniforms.u_texture);
-                        textUniforms.u_matrix = textMatrix;
-                        gl.uniformMatrix4fv(textInfo.programInfo.matrixLocation, false, textUniforms.u_matrix);
-                        gl.uniform1i(textInfo.programInfo.textureLocation, 0);
-                        gl.uniform4fv(textInfo.programInfo.colorLocation, text.color);
-
-                        // Draw the text.
-                        gl.drawArrays(gl.TRIANGLES, 0, textInfo.vertexCount);
+                            // Draw the text.
+                            gl.drawArrays(gl.TRIANGLES, 0, textInfo.vertexCount);
+                        }
                     });
 
                     requestAnimationFrame(drawScene);
                 }
             }
             main();
-
-            // const image = new Image();
-            // image.src = "./leaves.jpg";
-            // image.onload = function () {
-            //     main(image);
-            // };
         </script>
     </body>
 </html>

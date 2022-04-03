@@ -103,3 +103,64 @@ this.toRadian = function (angle) {
 };
 
 this.degToRad = toRadian;
+
+this.createQuadProgramInfo = function (gl) {
+    var vertexShaderSource = `#version 300 es
+precision highp float;
+
+in vec4 a_position;
+in vec2 a_texCoord;
+
+uniform mat4 u_matrix;
+
+out vec2 v_texCoord;
+
+void main() {
+  gl_Position = u_matrix * a_position;
+  v_texCoord = a_texCoord;
+}
+`;
+
+    var fragmentShaderSource = `#version 300 es
+precision highp float;
+
+in vec2 v_texCoord;
+
+uniform sampler2D u_image;
+
+out vec4 outColor;
+
+void main() {
+    outColor = texture(u_image, v_texCoord);
+}
+`;
+
+    var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+    var program = createProgram(gl, vertexShader, fragmentShader);
+
+    var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+    var texCoordAttributeLocation = gl.getAttribLocation(program, "a_texCoord");
+    var matrixLocation = gl.getUniformLocation(program, "u_matrix");
+    var imageLocation = gl.getUniformLocation(program, "u_image");
+    var colorLocation = gl.getUniformLocation(program, "u_color");
+    return { program, positionAttributeLocation, texCoordAttributeLocation, matrixLocation, imageLocation, colorLocation };
+};
+
+this.createVAOFromBufferInfo = function (gl, textProgramInfo, textBufferInfo) {
+    var vao = gl.createVertexArray();
+
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, textBufferInfo.attribs.a_texcoord.buffer);
+    gl.enableVertexAttribArray(textProgramInfo.texCoordAttributeLocation);
+    gl.vertexAttribPointer(textProgramInfo.texCoordAttributeLocation, textBufferInfo.attribs.a_position.numComponents, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
+
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, textBufferInfo.attribs.a_position.buffer);
+    gl.enableVertexAttribArray(textProgramInfo.positionAttributeLocation);
+    gl.vertexAttribPointer(textProgramInfo.positionAttributeLocation, textBufferInfo.attribs.a_texcoord.numComponents, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
+
+    return vao;
+};
