@@ -12,14 +12,14 @@ in vec3 a_normal;
 
 // 一个用来转换位置的矩阵
 uniform mat4 u_worldViewProjection;
-uniform mat4 u_world;
+uniform mat4 u_worldInverseTranspose;
 
 out vec3 v_normal;
 
 // 所有着色器都有一个 main 函数
 void main() {
   gl_Position = u_worldViewProjection * a_position;
-  v_normal = mat3(u_world) * a_normal;
+  v_normal = mat3(u_worldInverseTranspose) * a_normal;
 }`;
             var fragmentShaderSource = `#version 300 es
 precision highp float;
@@ -58,7 +58,7 @@ void main() {
                 var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
                 var normalLocation = gl.getAttribLocation(program, "a_normal");
                 var worldViewProjectionLocation = gl.getUniformLocation(program, "u_worldViewProjection");
-                var worldLocation = gl.getUniformLocation(program, "u_world");
+                var worldInverseTransposeLocation = gl.getUniformLocation(program, "u_worldInverseTranspose");
                 var colorLocation = gl.getUniformLocation(program, "u_color");
                 var reverseLightDirectionLocation = gl.getUniformLocation(program, "u_reverseLightDirection");
 
@@ -213,7 +213,7 @@ void main() {
                     var color = [Math.random(), Math.random(), Math.random(), 1];
                     var scale = [1.0, 1.0, 1.0];
                     var rotation = [degToRad(180), time, 0];
-                    var translation = [0, -200, -560];
+                    var translation = [0, 75, -560];
                     var fieldOfViewRadians = (60 / 180) * Math.PI;
 
                     // 计算矩阵
@@ -222,13 +222,21 @@ void main() {
                     var zFar = 2000;
 
                     var viewProjectionMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar); // 透视投影矩阵
+                    // var matrix = m4.translation(translation[0], translation[1], translation[2]);
+                    // var worldMatrix = m4.xRotation(rotation[0]);
+                    // worldMatrix = m4.yRotate(worldMatrix, rotation[1]);
+                    // worldMatrix = m4.zRotate(worldMatrix, rotation[2]);
+                    // matrix = m4.multiply(matrix, worldMatrix);
+                    // matrix = m4.scale(matrix, scale[0], scale[1], scale[2]);
+
                     var matrix = m4.translation(translation[0], translation[1], translation[2]);
-                    var worldMatrix = m4.xRotation(rotation[0]);
-                    worldMatrix = m4.yRotate(worldMatrix, rotation[1]);
-                    worldMatrix = m4.zRotate(worldMatrix, rotation[2]);
-                    matrix = m4.multiply(matrix, worldMatrix);
+                    matrix = m4.xRotate(matrix, rotation[0]);
+                    matrix = m4.yRotate(matrix, rotation[1]);
+                    matrix = m4.zRotate(matrix, rotation[2]);
                     matrix = m4.scale(matrix, scale[0], scale[1], scale[2]);
                     var worldViewProjectionMatrix = m4.multiply(viewProjectionMatrix, matrix);
+                    var worldInverseMatrix = m4.inverse(matrix);
+                    var worldInverseTransposeMatrix = m4.transpose(worldInverseMatrix);
 
                     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
@@ -238,7 +246,7 @@ void main() {
                     gl.useProgram(program);
 
                     gl.uniformMatrix4fv(worldViewProjectionLocation, false, worldViewProjectionMatrix);
-                    gl.uniformMatrix4fv(worldLocation, false, worldMatrix);
+                    gl.uniformMatrix4fv(worldInverseTransposeLocation, false, worldInverseTransposeMatrix);
 
                     // 设置使用的颜色
                     gl.uniform4fv(colorLocation, [0.2, 1, 0.2, 1]); // green
