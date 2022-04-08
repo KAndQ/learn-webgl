@@ -222,13 +222,6 @@ void main() {
                     var zFar = 2000;
 
                     var viewProjectionMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar); // 透视投影矩阵
-                    // var matrix = m4.translation(translation[0], translation[1], translation[2]);
-                    // var worldMatrix = m4.xRotation(rotation[0]);
-                    // worldMatrix = m4.yRotate(worldMatrix, rotation[1]);
-                    // worldMatrix = m4.zRotate(worldMatrix, rotation[2]);
-                    // matrix = m4.multiply(matrix, worldMatrix);
-                    // matrix = m4.scale(matrix, scale[0], scale[1], scale[2]);
-
                     var matrix = m4.translation(translation[0], translation[1], translation[2]);
                     matrix = m4.xRotate(matrix, rotation[0]);
                     matrix = m4.yRotate(matrix, rotation[1]);
