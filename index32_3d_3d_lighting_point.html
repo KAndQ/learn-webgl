@@ -1,0 +1,279 @@
+<html>
+    <head></head>
+    <body>
+        <canvas id="c" width="640" height="480"></canvas>
+        <script src="./buildin.js"></script>
+        <script src="./m4.js"></script>
+        <script>
+            var vertexShaderSource = `#version 300 es
+
+in vec4 a_position;
+in vec3 a_normal;
+
+uniform vec3 u_lightWorldPosition;
+uniform mat4 u_world;
+uniform mat4 u_worldViewProjection;
+uniform mat4 u_worldInverseTranspose;
+
+out vec3 v_normal;
+out vec3 v_surfaceToLight;
+
+// 所有着色器都有一个 main 函数
+void main() {
+  // 将位置和矩阵相乘
+  gl_Position = u_worldViewProjection * a_position;
+
+  // 重定向法向量并传递给片断着色器
+  v_normal = mat3(u_worldInverseTranspose) * a_normal;
+
+  // 计算表面的世界坐标
+  vec3 surfaceWorldPosition = (u_world * a_position).xyz;
+
+  // 计算表面到光源的方向
+  // 传递给片断着色器
+  v_surfaceToLight = u_lightWorldPosition - surfaceWorldPosition;
+}`;
+            var fragmentShaderSource = `#version 300 es
+precision highp float;
+
+in vec3 v_normal;
+in vec3 v_surfaceToLight;
+
+uniform vec4 u_color;
+
+out vec4 outColor;
+
+void main() {
+  // 因为 v_normal 是一个变化的插值所以它不会是一个单位向量。 归一化使它成为单位向量
+  vec3 normal = normalize(v_normal);
+
+  vec3 surfaceToLightDirection = normalize(v_surfaceToLight);
+
+  // 通过取法线与光线反向的点积计算光
+  float light = dot(v_normal, surfaceToLightDirection);
+
+  outColor = u_color;
+
+  // 让我们只将颜色部分（不是 alpha）乘以光
+  outColor.rgb *= light;
+}`;
+
+            function main() {
+                var gl = getGL();
+                if (!gl) {
+                    console.log("no webgl2");
+                    return;
+                }
+
+                var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+                var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+                var program = createProgram(gl, vertexShader, fragmentShader);
+
+                var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+                var normalLocation = gl.getAttribLocation(program, "a_normal");
+                var worldViewProjectionLocation = gl.getUniformLocation(program, "u_worldViewProjection");
+                var worldInverseTransposeLocation = gl.getUniformLocation(program, "u_worldInverseTranspose");
+                var colorLocation = gl.getUniformLocation(program, "u_color");
+                var lightWorldPositionLocation = gl.getUniformLocation(program, "u_lightWorldPosition");
+                var worldLocation = gl.getUniformLocation(program, "u_world");
+
+                var vao = gl.createVertexArray();
+
+                // setPosition
+                {
+                    gl.bindVertexArray(vao);
+
+                    var positionBuffer = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                    gl.enableVertexAttribArray(positionAttributeLocation);
+                    // 告诉属性怎么从 positionBuffer (ARRAY_BUFFER) 中读取位置
+                    var size = 3; // 每次迭代使用 3 个单位的数据
+                    var type = gl.FLOAT; // 单位数据类型是32位的浮点型
+                    var normalize = false; // 不需要归一化数据
+                    var stride = 0; // 0 = 移动距离 * 单位距离长度sizeof(type)  每次迭代跳多少距离到下一个数据
+                    var offset = 0; // 从绑定缓冲的起始处开始
+                    gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+
+                    // 使用组成 'F' 的数据填充当前 ARRAY_BUFFER 缓冲
+                    function setGeometry(gl) {
+                        gl.bufferData(
+                            gl.ARRAY_BUFFER,
+                            new Float32Array([
+                                // left column front
+                                0, 0, 0, 0, 150, 0, 30, 0, 0, 0, 150, 0, 30, 150, 0, 30, 0, 0,
+
+                                // top rung front
+                                30, 0, 0, 30, 30, 0, 100, 0, 0, 30, 30, 0, 100, 30, 0, 100, 0, 0,
+
+                                // middle rung front
+                                30, 60, 0, 30, 90, 0, 67, 60, 0, 30, 90, 0, 67, 90, 0, 67, 60, 0,
+
+                                // left column back
+                                0, 0, 30, 30, 0, 30, 0, 150, 30, 0, 150, 30, 30, 0, 30, 30, 150, 30,
+
+                                // top rung back
+                                30, 0, 30, 100, 0, 30, 30, 30, 30, 30, 30, 30, 100, 0, 30, 100, 30, 30,
+
+                                // middle rung back
+                                30, 60, 30, 67, 60, 30, 30, 90, 30, 30, 90, 30, 67, 60, 30, 67, 90, 30,
+
+                                // top
+                                0, 0, 0, 100, 0, 0, 100, 0, 30, 0, 0, 0, 100, 0, 30, 0, 0, 30,
+
+                                // top rung right
+                                100, 0, 0, 100, 30, 0, 100, 30, 30, 100, 0, 0, 100, 30, 30, 100, 0, 30,
+
+                                // under top rung
+                                30, 30, 0, 30, 30, 30, 100, 30, 30, 30, 30, 0, 100, 30, 30, 100, 30, 0,
+
+                                // between top rung and middle
+                                30, 30, 0, 30, 60, 30, 30, 30, 30, 30, 30, 0, 30, 60, 0, 30, 60, 30,
+
+                                // top of middle rung
+                                30, 60, 0, 67, 60, 30, 30, 60, 30, 30, 60, 0, 67, 60, 0, 67, 60, 30,
+
+                                // right of middle rung
+                                67, 60, 0, 67, 90, 30, 67, 60, 30, 67, 60, 0, 67, 90, 0, 67, 90, 30,
+
+                                // bottom of middle rung.
+                                30, 90, 0, 30, 90, 30, 67, 90, 30, 30, 90, 0, 67, 90, 30, 67, 90, 0,
+
+                                // right of bottom
+                                30, 90, 0, 30, 150, 30, 30, 90, 30, 30, 90, 0, 30, 150, 0, 30, 150, 30,
+
+                                // bottom
+                                0, 150, 0, 0, 150, 30, 30, 150, 30, 0, 150, 0, 30, 150, 30, 30, 150, 0,
+
+                                // left side
+                                0, 0, 0, 0, 0, 30, 0, 150, 30, 0, 0, 0, 0, 150, 30, 0, 150, 0,
+                            ]),
+                            gl.STATIC_DRAW
+                        );
+                    }
+                    setGeometry(gl);
+                    gl.bindVertexArray(null);
+                }
+
+                {
+                    gl.bindVertexArray(vao);
+
+                    // 创建缓冲存储法向量
+                    var buffer = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+                    gl.enableVertexAttribArray(normalLocation);
+                    gl.vertexAttribPointer(normalLocation, 3, gl.FLOAT, false, 0, 0);
+
+                    // 设置法向量
+                    setNormals(gl);
+
+                    gl.bindVertexArray(null);
+
+                    function setNormals(gl) {
+                        var normals = new Float32Array([
+                            // left column front
+                            0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1,
+
+                            // top rung front
+                            0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1,
+
+                            // middle rung front
+                            0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1,
+
+                            // left column back
+                            0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1,
+
+                            // top rung back
+                            0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1,
+
+                            // middle rung back
+                            0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1,
+
+                            // top
+                            0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0,
+
+                            // top rung right
+                            1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
+
+                            // under top rung
+                            0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,
+
+                            // between top rung and middle
+                            1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
+
+                            // top of middle rung
+                            0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0,
+
+                            // right of middle rung
+                            1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
+
+                            // bottom of middle rung.
+                            0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,
+
+                            // right of bottom
+                            1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
+
+                            // bottom
+                            0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,
+
+                            // left side
+                            -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0,
+                        ]);
+                        gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
+                    }
+                }
+
+                function drawScene(time) {
+                    time = time * 0.001;
+
+                    var color = [Math.random(), Math.random(), Math.random(), 1];
+                    var scale = [1.0, 1.0, 1.0];
+                    var rotation = [degToRad(180), time, time];
+                    var translation = [-50 * Math.sin(time), 80 * Math.cos(time), -300];
+                    var fieldOfViewRadians = (60 / 180) * Math.PI;
+
+                    // 计算矩阵
+                    var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+                    var zNear = 1;
+                    var zFar = 2000;
+
+                    var viewProjectionMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar); // 透视投影矩阵
+                    var worldMatrix = m4.translation(translation[0], translation[1], translation[2]);
+                    worldMatrix = m4.xRotate(worldMatrix, rotation[0]);
+                    worldMatrix = m4.yRotate(worldMatrix, rotation[1]);
+                    worldMatrix = m4.zRotate(worldMatrix, rotation[2]);
+                    worldMatrix = m4.scale(worldMatrix, scale[0], scale[1], scale[2]);
+                    var worldViewProjectionMatrix = m4.multiply(viewProjectionMatrix, worldMatrix);
+                    var worldInverseMatrix = m4.inverse(worldMatrix);
+                    var worldInverseTransposeMatrix = m4.transpose(worldInverseMatrix);
+
+                    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+                    gl.clearColor(1, 1, 0, 1);
+                    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+                    gl.useProgram(program);
+
+                    gl.uniformMatrix4fv(worldInverseTransposeLocation, false, worldInverseTransposeMatrix);
+                    gl.uniformMatrix4fv(worldLocation, false, worldMatrix);
+                    gl.uniformMatrix4fv(worldViewProjectionLocation, false, worldViewProjectionMatrix);
+
+                    // 设置使用的颜色
+                    gl.uniform4fv(colorLocation, [0.2, 1, 0.2, 1]); // green
+
+                    // 设置光源位置
+                    gl.uniform3fv(lightWorldPositionLocation, [-20, -10, -230]);
+
+                    gl.bindVertexArray(vao);
+
+                    gl.enable(gl.DEPTH_TEST);
+                    gl.enable(gl.CULL_FACE);
+
+                    drawArrays(gl, 96);
+                    requestAnimationFrame(drawScene);
+                }
+                drawScene(0);
+            }
+            main();
+        </script>
+    </body>
+</html>
