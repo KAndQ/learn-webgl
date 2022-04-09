@@ -11,12 +11,15 @@ in vec4 a_position;
 in vec3 a_normal;
 
 uniform vec3 u_lightWorldPosition;
+uniform vec3 u_viewWorldPosition;
+
 uniform mat4 u_world;
 uniform mat4 u_worldViewProjection;
 uniform mat4 u_worldInverseTranspose;
 
 out vec3 v_normal;
 out vec3 v_surfaceToLight;
+out vec3 v_surfaceToView;
 
 // 所有着色器都有一个 main 函数
 void main() {
@@ -32,14 +35,22 @@ void main() {
   // 计算表面到光源的方向
   // 传递给片断着色器
   v_surfaceToLight = u_lightWorldPosition - surfaceWorldPosition;
+
+  // 计算表面到相机的方向
+  // 然后传递到片断着色器
+  v_surfaceToView = u_viewWorldPosition - surfaceWorldPosition;
 }`;
             var fragmentShaderSource = `#version 300 es
 precision highp float;
 
 in vec3 v_normal;
 in vec3 v_surfaceToLight;
+in vec3 v_surfaceToView;
 
 uniform vec4 u_color;
+uniform float u_shininess;
+uniform vec3 u_lightColor;
+uniform vec3 u_specularColor;
 
 out vec4 outColor;
 
@@ -48,14 +59,23 @@ void main() {
   vec3 normal = normalize(v_normal);
 
   vec3 surfaceToLightDirection = normalize(v_surfaceToLight);
+  vec3 surfaceToViewDirection = normalize(v_surfaceToView);
+  vec3 halfVector = normalize(surfaceToLightDirection + surfaceToViewDirection);
 
   // 通过取法线与光线反向的点积计算光
   float light = dot(v_normal, surfaceToLightDirection);
+  float specular = 0.0;
+  if (light > 0.0) {
+    specular = pow(dot(normal, halfVector), u_shininess);
+  }
 
   outColor = u_color;
 
-  // 让我们只将颜色部分（不是 alpha）乘以光
-  outColor.rgb *= light;
+  // 只将颜色部分（不包含 alpha） 和光照相乘
+  outColor.rgb *= light * u_lightColor;
+
+  // 直接和高光相加
+  outColor.rgb += specular * u_specularColor;
 }`;
 
             function main() {
@@ -76,6 +96,10 @@ void main() {
                 var colorLocation = gl.getUniformLocation(program, "u_color");
                 var lightWorldPositionLocation = gl.getUniformLocation(program, "u_lightWorldPosition");
                 var worldLocation = gl.getUniformLocation(program, "u_world");
+                var viewWorldPositionLocation = gl.getUniformLocation(program, "u_viewWorldPosition");
+                var shininessLocation = gl.getUniformLocation(program, "u_shininess");
+                var lightColorLocation = gl.getUniformLocation(program, "u_lightColor");
+                var specularColorLocation = gl.getUniformLocation(program, "u_specularColor");
 
                 var vao = gl.createVertexArray();
 
@@ -228,8 +252,9 @@ void main() {
                     var color = [Math.random(), Math.random(), Math.random(), 1];
                     var scale = [1.0, 1.0, 1.0];
                     var rotation = [degToRad(180), time, time];
-                    var translation = [-50 * Math.sin(time), 80 * Math.cos(time), -300];
+                    var translation = [-50 * Math.sin(time), 80 * Math.cos(time), -400];
                     var fieldOfViewRadians = (60 / 180) * Math.PI;
+                    var shininess = 10.0;
 
                     // 计算矩阵
                     var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
@@ -257,11 +282,23 @@ void main() {
                     gl.uniformMatrix4fv(worldLocation, false, worldMatrix);
                     gl.uniformMatrix4fv(worldViewProjectionLocation, false, worldViewProjectionMatrix);
 
+                    // 设置相机位置
+                    gl.uniform3fv(viewWorldPositionLocation, [0, 0, 0]);
+
                     // 设置使用的颜色
                     gl.uniform4fv(colorLocation, [0.2, 1, 0.2, 1]); // green
 
                     // 设置光源位置
                     gl.uniform3fv(lightWorldPositionLocation, [-20, -10, -230]);
+
+                    // 设置亮度
+                    gl.uniform1f(shininessLocation, shininess);
+
+                    // 设置光照颜色
+                    gl.uniform3fv(lightColorLocation, m4.normalize([1, 0.6, 0.6])); // red light
+
+                    // 设置高光颜色
+                    gl.uniform3fv(specularColorLocation, m4.normalize([1, 0.6, 0.6])); // red light
 
                     gl.bindVertexArray(vao);
 
