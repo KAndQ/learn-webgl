@@ -50,7 +50,8 @@ in vec3 v_surfaceToView;
 uniform vec4 u_color;
 uniform float u_shininess;
 uniform vec3 u_lightDirection;
-uniform float u_limit;          // 在点乘空间中
+uniform float u_innerLimit;     // 在点乘空间中
+uniform float u_outerLimit;     // 在点乘空间中
 
 out vec4 outColor;
 
@@ -65,7 +66,7 @@ void main() {
   // 通过取法线与光线反向的点积计算光
   float dotFromDirection = dot(surfaceToLightDirection, -u_lightDirection);
 
-  float inLight = step(u_limit, dotFromDirection);
+  float inLight = smoothstep(u_outerLimit, u_innerLimit, dotFromDirection);
   float light = inLight * dot(normal, surfaceToLightDirection);
   float specular = inLight * pow(dot(normal, halfVector), u_shininess);
 
@@ -99,7 +100,8 @@ void main() {
                 var viewWorldPositionLocation = gl.getUniformLocation(program, "u_viewWorldPosition");
                 var shininessLocation = gl.getUniformLocation(program, "u_shininess");
                 var lightDirectionLocation = gl.getUniformLocation(program, "u_lightDirection");
-                var limitLocation = gl.getUniformLocation(program, "u_limit");
+                var innerLimitLocation = gl.getUniformLocation(program, "u_innerLimit");
+                var outerLimitLocation = gl.getUniformLocation(program, "u_outerLimit");
 
                 var vao = gl.createVertexArray();
 
@@ -256,7 +258,8 @@ void main() {
                     var fieldOfViewRadians = (60 / 180) * Math.PI;
                     var shininess = 10.0;
                     var lightDirection = [0, 0, 0];
-                    var limit = degToRad(20);
+                    var innerLimit = degToRad(10);
+                    var outerLimit = degToRad(20);
 
                     // 计算矩阵
                     var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
@@ -300,7 +303,9 @@ void main() {
                     // 光的方向是指向 F
                     lightDirection = [worldMatrix[12] - lightDirection[0], worldMatrix[13] - lightDirection[1], worldMatrix[14] - lightDirection[2]];
                     gl.uniform3fv(lightDirectionLocation, m4.normalize(lightDirection));
-                    gl.uniform1f(limitLocation, Math.cos(limit));
+
+                    gl.uniform1f(innerLimitLocation, Math.cos(innerLimit));
+                    gl.uniform1f(outerLimitLocation, Math.cos(outerLimit));
 
                     gl.bindVertexArray(vao);
 
