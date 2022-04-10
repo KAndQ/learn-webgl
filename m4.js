@@ -69,7 +69,7 @@ var m4 = {
         return m4.multiply(m, m4.scaling(sx, sy, sz));
     },
 
-    multiply: function (a, b) {
+    multiply: function (a, b, dst) {
         var b00 = b[0 * 4 + 0];
         var b01 = b[0 * 4 + 1];
         var b02 = b[0 * 4 + 2];
@@ -104,24 +104,44 @@ var m4 = {
         var a32 = a[3 * 4 + 2];
         var a33 = a[3 * 4 + 3];
 
-        return [
-            b00 * a00 + b01 * a10 + b02 * a20 + b03 * a30,
-            b00 * a01 + b01 * a11 + b02 * a21 + b03 * a31,
-            b00 * a02 + b01 * a12 + b02 * a22 + b03 * a32,
-            b00 * a03 + b01 * a13 + b02 * a23 + b03 * a33,
-            b10 * a00 + b11 * a10 + b12 * a20 + b13 * a30,
-            b10 * a01 + b11 * a11 + b12 * a21 + b13 * a31,
-            b10 * a02 + b11 * a12 + b12 * a22 + b13 * a32,
-            b10 * a03 + b11 * a13 + b12 * a23 + b13 * a33,
-            b20 * a00 + b21 * a10 + b22 * a20 + b23 * a30,
-            b20 * a01 + b21 * a11 + b22 * a21 + b23 * a31,
-            b20 * a02 + b21 * a12 + b22 * a22 + b23 * a32,
-            b20 * a03 + b21 * a13 + b22 * a23 + b23 * a33,
-            b30 * a00 + b31 * a10 + b32 * a20 + b33 * a30,
-            b30 * a01 + b31 * a11 + b32 * a21 + b33 * a31,
-            b30 * a02 + b31 * a12 + b32 * a22 + b33 * a32,
-            b30 * a03 + b31 * a13 + b32 * a23 + b33 * a33,
-        ];
+        if (dst) {
+            dst[0] = b00 * a00 + b01 * a10 + b02 * a20 + b03 * a30;
+            dst[1] = b00 * a01 + b01 * a11 + b02 * a21 + b03 * a31;
+            dst[2] = b00 * a02 + b01 * a12 + b02 * a22 + b03 * a32;
+            dst[3] = b00 * a03 + b01 * a13 + b02 * a23 + b03 * a33;
+            dst[4] = b10 * a00 + b11 * a10 + b12 * a20 + b13 * a30;
+            dst[5] = b10 * a01 + b11 * a11 + b12 * a21 + b13 * a31;
+            dst[6] = b10 * a02 + b11 * a12 + b12 * a22 + b13 * a32;
+            dst[7] = b10 * a03 + b11 * a13 + b12 * a23 + b13 * a33;
+            dst[8] = b20 * a00 + b21 * a10 + b22 * a20 + b23 * a30;
+            dst[9] = b20 * a01 + b21 * a11 + b22 * a21 + b23 * a31;
+            dst[10] = b20 * a02 + b21 * a12 + b22 * a22 + b23 * a32;
+            dst[11] = b20 * a03 + b21 * a13 + b22 * a23 + b23 * a33;
+            dst[12] = b30 * a00 + b31 * a10 + b32 * a20 + b33 * a30;
+            dst[13] = b30 * a01 + b31 * a11 + b32 * a21 + b33 * a31;
+            dst[14] = b30 * a02 + b31 * a12 + b32 * a22 + b33 * a32;
+            dst[15] = b30 * a03 + b31 * a13 + b32 * a23 + b33 * a33;
+            return dst;
+        } else {
+            return [
+                b00 * a00 + b01 * a10 + b02 * a20 + b03 * a30,
+                b00 * a01 + b01 * a11 + b02 * a21 + b03 * a31,
+                b00 * a02 + b01 * a12 + b02 * a22 + b03 * a32,
+                b00 * a03 + b01 * a13 + b02 * a23 + b03 * a33,
+                b10 * a00 + b11 * a10 + b12 * a20 + b13 * a30,
+                b10 * a01 + b11 * a11 + b12 * a21 + b13 * a31,
+                b10 * a02 + b11 * a12 + b12 * a22 + b13 * a32,
+                b10 * a03 + b11 * a13 + b12 * a23 + b13 * a33,
+                b20 * a00 + b21 * a10 + b22 * a20 + b23 * a30,
+                b20 * a01 + b21 * a11 + b22 * a21 + b23 * a31,
+                b20 * a02 + b21 * a12 + b22 * a22 + b23 * a32,
+                b20 * a03 + b21 * a13 + b22 * a23 + b23 * a33,
+                b30 * a00 + b31 * a10 + b32 * a20 + b33 * a30,
+                b30 * a01 + b31 * a11 + b32 * a21 + b33 * a31,
+                b30 * a02 + b31 * a12 + b32 * a22 + b33 * a32,
+                b30 * a03 + b31 * a13 + b32 * a23 + b33 * a33,
+            ];
+        }
     },
 
     projection: function (width, height, depth) {
@@ -268,6 +288,29 @@ var m4 = {
 
     transpose: function (m) {
         return [m[0], m[4], m[8], m[12], m[1], m[5], m[9], m[13], m[2], m[6], m[10], m[14], m[3], m[7], m[11], m[15]];
+    },
+
+    copy: function (src, dst) {
+        dst = dst || new MatType(16);
+
+        dst[0] = src[0];
+        dst[1] = src[1];
+        dst[2] = src[2];
+        dst[3] = src[3];
+        dst[4] = src[4];
+        dst[5] = src[5];
+        dst[6] = src[6];
+        dst[7] = src[7];
+        dst[8] = src[8];
+        dst[9] = src[9];
+        dst[10] = src[10];
+        dst[11] = src[11];
+        dst[12] = src[12];
+        dst[13] = src[13];
+        dst[14] = src[14];
+        dst[15] = src[15];
+
+        return dst;
     },
 };
 
