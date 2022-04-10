@@ -63,15 +63,11 @@ void main() {
   vec3 halfVector = normalize(surfaceToLightDirection + surfaceToViewDirection);
 
   // 通过取法线与光线反向的点积计算光
-  float light = 0.0;
-  float specular = 0.0;
   float dotFromDirection = dot(surfaceToLightDirection, -u_lightDirection);
-  if (dotFromDirection >= u_limit) {
-    light = dot(normal, surfaceToLightDirection);
-    if (light > 0.0) {
-      specular = pow(dot(normal, halfVector), u_shininess);
-    }
-  }
+
+  float inLight = step(u_limit, dotFromDirection);
+  float light = inLight * dot(normal, surfaceToLightDirection);
+  float specular = inLight * pow(dot(normal, halfVector), u_shininess);
 
   outColor = u_color;
 
