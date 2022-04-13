@@ -55,7 +55,9 @@
 -   [x] 加载 .obj 文件(粗略的看了一遍, 代码基本没看, 只是看了描述的一些概念)
 -   [x] 加载带 .mtl 的 .obj 文件(也是粗略的看了一遍, 看看描述的概念)
 -   [x] 跨域图像
--   [ ] 纹理映射的透视纠正
+-   [x] 纹理映射的透视纠正
+-   [ ] WebGL2 Multiple Views, Multiple Canvases
+-   [ ] WebGL2 Visualizing the Camera
 -   [ ] 平面的和透视的投影映射
 -   [ ] 渲染到纹理
 -   [ ] 阴影
