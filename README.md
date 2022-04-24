@@ -66,3 +66,15 @@
 -   [x] 环境贴图
 -   [x] 天空盒
 -   [ ] 蒙皮
+-   [ ] 雾
+-   [ ] Picking (clicking on stuff)
+-   [ ] GPGPU
+-   [ ] Pulling Vertices
+-   [ ] 顶点索引 (gl.drawElements)
+-   [ ] 实例化绘制
+-   [ ] Points, Lines, and Triangles
+-   [ ] WebGL2 and Anti-Patterns
+-   [ ] Taking a screenshot
+-   [ ] Prevent the Canvas Being Cleared
+-   [ ] Framebuffers
+-   [ ] readPixels
