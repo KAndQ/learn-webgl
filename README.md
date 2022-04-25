@@ -65,9 +65,9 @@
 -   [x] 立方体贴图
 -   [x] 环境贴图
 -   [x] 天空盒
--   [ ] 蒙皮, 让我们用纹理传递矩阵来绕过全局变量的限制问题。让其简单我们准备使用浮点型纹理。
--   [ ] 雾
--   [ ] Picking (clicking on stuff)
+-   [x] 蒙皮
+-   [x] 雾
+-   [x] Picking (clicking on stuff)
 -   [ ] GPGPU
 -   [ ] Pulling Vertices
 -   [ ] 顶点索引 (gl.drawElements)
