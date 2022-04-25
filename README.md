@@ -68,7 +68,7 @@
 -   [x] 蒙皮
 -   [x] 雾
 -   [x] Picking (clicking on stuff)
--   [ ] GPGPU
+-   [x] GPGPU(看不懂啊!看不懂!)
 -   [ ] Pulling Vertices
 -   [ ] 顶点索引 (gl.drawElements)
 -   [ ] 实例化绘制
