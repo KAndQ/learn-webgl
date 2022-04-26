@@ -72,7 +72,7 @@
 -   [x] Pulling Vertices, 好像是把一堆的顶点数据放到数据纹理中, 走马观花的看了一遍
 -   [x] 顶点索引 (gl.drawElements)
 -   [x] 实例化绘制
--   [ ] Points, Lines, and Triangles
+-   [x] Points, Lines, and Triangles
 -   [ ] WebGL2 and Anti-Patterns
 -   [ ] Taking a screenshot
 -   [ ] Prevent the Canvas Being Cleared
