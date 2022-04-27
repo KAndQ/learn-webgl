@@ -73,8 +73,8 @@
 -   [x] 顶点索引 (gl.drawElements)
 -   [x] 实例化绘制
 -   [x] Points, Lines, and Triangles
--   [ ] WebGL2 and Anti-Patterns
--   [ ] Taking a screenshot
--   [ ] Prevent the Canvas Being Cleared
--   [ ] Framebuffers
--   [ ] readPixels
+-   [x] WebGL2 and Anti-Patterns
+-   [x] Taking a screenshot
+-   [x] Prevent the Canvas Being Cleared
+-   [x] Framebuffers
+-   [x] readPixels
